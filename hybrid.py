@@ -53,8 +53,7 @@ def single_run(fun: OptFun, stop_after: int, popsize: int | None = None):
     d = es.C @ fun.grad(es.mean)
 
     one_dim_fun = one_dim(fun, es.mean, d)
-    brack = bracket(one_dim_fun, 0)[:3]
-    solution, fval, funcalls = golden(one_dim_fun, brack=brack, full_output=True)
+    solution, fval, funcalls = golden(one_dim_fun, full_output=True)
 
     print(f"Value in optimum: {fval}")
     print(f"Function calls in optimum: {funcalls}")
