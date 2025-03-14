@@ -3,7 +3,7 @@ import seaborn as sns
 import cma
 import numpy as np
 from constants import PLOT_PATH
-from funs import OptFun, Rosen
+from funs import Elliptic, OptFun, Rastrigin, Rosen
 from scipy.optimize import bracket, golden
 from codetiming import Timer
 from dataclasses import dataclass
@@ -35,7 +35,9 @@ def one_dim(fun, x, d):
     return wrapper
 
 
-def single_run(fun: OptFun, stop_after: int, popsize: int | None = None):
+def single_run(
+    fun: OptFun, stop_after: int, popsize: int | None = None
+) -> SingleResult:
     x = (rng.random(DIMENSIONS) - 0.5) * 2 * BOUNDS
 
     inopts = {"popsize": popsize} if popsize is not None else {}
@@ -45,10 +47,14 @@ def single_run(fun: OptFun, stop_after: int, popsize: int | None = None):
 
     logger.info("Starting optimization using CMA-ES")
 
-    for iter in range(stop_after):
+    for i in range(stop_after):
+        if es.stop():
+            break
         es.tell(*es.ask_and_eval(fun.fun))
 
-    logger.info("Finished optimization using CMA-ES")
+    logger.info(
+        f"Finished optimization using CMA-ES (stop after {stop_after}, popsize {popsize})"
+    )
 
     d = es.C @ fun.grad(es.mean)
 

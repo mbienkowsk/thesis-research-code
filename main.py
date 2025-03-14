@@ -3,7 +3,7 @@ from loguru import logger
 import numba
 import numpy as np
 from constants import PLOT_PATH
-from funs import Cylinder, OptFun, Sphere
+from funs import Elliptic, OptFun, Sphere
 import matplotlib
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
@@ -81,14 +81,15 @@ def sphere_run(dim):
     single_run(Sphere, dim)
 
 
-def cylinder_run(dim):
-    single_run(Cylinder, dim)
+def eliptic_run(dim):
+    single_run(Elliptic, dim)
 
 
 def main():
     x = (rng.random(30) - 0.5) * 2 * BOUNDS
-    es = cma.CMAEvolutionStrategy(x, START_SIGMA)
-    es.optimize(cma.ff.rosen)
+    es = cma.CMAEvolutionStrategy(x, START_SIGMA, inopts={"popsize": 120})
+    # es.optimize(cma.ff.rosen)
+    es.optimize(Elliptic.fun)
     print(es.mean)
 
 

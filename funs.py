@@ -14,7 +14,7 @@ class OptFun:
 
 
 @numba.njit
-def cylinder(x):
+def elliptic(x):
     n = len(x)
     rv = 0
     for i in range(n):
@@ -24,7 +24,7 @@ def cylinder(x):
 
 
 @numba.njit
-def cylinder_grad(x):
+def elliptic_grad(x):
     n = len(x)
     rv = np.zeros(n)
     for i in range(n):
@@ -32,7 +32,7 @@ def cylinder_grad(x):
     return rv
 
 
-Cylinder = OptFun(cylinder, cylinder_grad, "cylinder", 0)
+Elliptic = OptFun(elliptic, elliptic_grad, "Elliptic", 0)
 
 
 @numba.njit
@@ -48,3 +48,11 @@ def sphere_grad(x):
 Sphere = OptFun(sphere, sphere_grad, "sphere", 0)
 
 Rosen = OptFun(cma.ff.rosen, cma.ff.grad_rosen, "Rosenbrock", 1)
+
+
+@numba.njit
+def rastrigin_grad(x):
+    return 2 * x + 20 * np.sin(2 * np.pi * x)
+
+
+Rastrigin = OptFun(cma.ff.rastrigin, rastrigin_grad, "Rastrigin", 0)
