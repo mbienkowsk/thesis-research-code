@@ -51,6 +51,27 @@ Rosen = OptFun(cma.ff.rosen, cma.ff.grad_rosen, "Rosenbrock", 1)
 
 
 @numba.njit
+def shifted_rastrigin_grad(x):
+    return 2 * (x - 100) + 20 * np.sin(2 * np.pi * (x - 100))
+
+
+def shifted_rastrigin(x):
+    """Rastrigin test objective function"""
+    if not np.isscalar(x[0]):
+        N = len(x[0])
+        return [
+            10 * N + sum((xi - 100) ** 2 - 10 * np.cos(2 * np.pi * (xi - 100)))
+            for xi in x
+        ]
+        # return 10*N + sum(x**2 - 10*np.cos(2*np.pi*x), axis=1)
+    N = len(x)
+    return 10 * N + sum(x**2 - 10 * np.cos(2 * np.pi * x))
+
+
+ShiftedRastrigin = OptFun(shifted_rastrigin, shifted_rastrigin_grad, "Rastrigin", 100)
+
+
+@numba.jit
 def rastrigin_grad(x):
     return 2 * x + 20 * np.sin(2 * np.pi * x)
 

@@ -2,7 +2,7 @@ from loguru import logger
 import cma
 from scipy.optimize import golden
 from constants import PLOT_PATH
-from funs import Elliptic, OptFun, Rastrigin, Rosen, Sphere
+from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -122,5 +122,5 @@ def single_run(fun: OptFun, popsize: int | None = None):
 
 if __name__ == "__main__":
     for fun in (Sphere,):
-        for size in (120,):
+        for size in (400,):
             single_run(fun, size)
