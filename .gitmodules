@@ -1,0 +1,3 @@
+[submodule "pycma"]
+	path = pycma
+	url = git@github.com:mbienkowsk/pycma.git
