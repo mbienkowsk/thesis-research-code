@@ -1,3 +1,6 @@
+import multiprocessing
+from loguru import logger
+from constants import PLOT_PATH
 from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere, Rastrigin
 from lincmaes import lincmaes
 from wrapper import eswrapper
@@ -30,6 +33,7 @@ def single_comparison(
     maxevals: int,
     line_interval: int,
     average_from: int = 25,
+    save_plot: bool = True,
 ):
     all_vanilla_values, all_vanilla_evals = [], []
     all_hess_values, all_hess_evals = [], []
@@ -74,16 +78,47 @@ def single_comparison(
     )
     plt.suptitle(
         f"Average value of {fun.name} at the midpoint after x evaluations of it."
-        + f"\nlambda={popsize}, {dims} dimensions"
+        + f"\nk={line_interval // dims}, lambda={popsize}, {dims} dimensions"
     )
     plt.yscale("log")
-    plt.show()
+
+    save_dir = PLOT_PATH / "hybrid" / "comparison" / fun.name
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    if save_plot:
+        logger.error("Saving plot")
+        plt.savefig(save_dir / f"dim_{dims}_k_{line_interval // dims}.png")
+    else:
+        plt.show()
+    plt.clf()
+
+
+def single_comparison_wrapper(fun: OptFun, dim: int, k: int, avg_from: int = 25):
+    popsize = 4 * dim
+    maxevals = 1000 * popsize
+    line_cmaes_interval = k * dim
+    single_comparison(fun, dim, popsize, maxevals, line_cmaes_interval, avg_from)
+
+
+def run_all():
+    dims = (30, 50)
+    funs = (Rastrigin, ShiftedRastrigin)
+    ks = (1, 2, 3, 4)
+
+    with multiprocessing.Pool(6) as pool:
+        pool.starmap(
+            single_comparison_wrapper,
+            [(fun, dim, k, 50) for fun in funs for dim in dims for k in ks],
+        )
 
 
 if __name__ == "__main__":
-    dims = 30
-    popsize = 4 * dims
-    maxevals = 1000 * popsize
-    line_cmaes_interval = 2 * dims
-
-    single_comparison(Sphere, dims, popsize, maxevals, line_cmaes_interval, 10)
+    # dims = 30
+    # popsize = 4 * dims
+    # maxevals = 1000 * popsize
+    # line_cmaes_interval = 3 * dims
+    #
+    # single_comparison(
+    #     Rastrigin, dims, popsize, maxevals, line_cmaes_interval, 25, False
+    # )
+    run_all()
