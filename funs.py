@@ -68,7 +68,9 @@ def shifted_rastrigin(x):
     return 10 * N + sum(x**2 - 10 * np.cos(2 * np.pi * x))
 
 
-ShiftedRastrigin = OptFun(shifted_rastrigin, shifted_rastrigin_grad, "Rastrigin", 100)
+ShiftedRastrigin = OptFun(
+    shifted_rastrigin, shifted_rastrigin_grad, "Shifted Rastrigin", 100
+)
 
 
 @numba.jit
