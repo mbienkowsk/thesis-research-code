@@ -32,6 +32,7 @@ def lincmaes(
     popsize: int,
     maxevals: int | None = None,
     gradient_type: CMAVariation = CMAVariation.ANALYTICAL_GRAD_C,
+    gradient_cost: int = 0,
 ) -> CMAResult:
     midpoint_values = []
     evals_values = []
@@ -61,9 +62,11 @@ def lincmaes(
                 d = es.C @ es.pc  # pyright: ignore[reportOperatorIssue]
 
             case CMAVariation.ANALYTICAL_GRAD_C:
+                es.countevals += gradient_cost
                 d = es.C @ fun.grad(es.mean)
 
             case CMAVariation.ANALYTICAL_GRAD:
+                es.countevals += gradient_cost
                 d = fun.grad(es.mean)
 
             case CMAVariation.DIVIDED_DIFFERENCE_C:
