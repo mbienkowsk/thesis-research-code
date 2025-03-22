@@ -1,35 +1,41 @@
 from dataclasses import dataclass, field
 from typing import Callable
+
+from loguru import logger
 from cma import CMAEvolutionStrategy
 import numpy as np
-from scipy.optimize import golden
+from scipy.optimize import bracket, golden
 from enum import Enum
 
 from funs import OptFun
 from hybrid import one_dim
+from util import CMAResult
 
 rng = np.random.default_rng(0)
 DIMENSIONS = 100
 INIT_BOUNDS = 3
 
 
-class GradientType(Enum):
+class CMAVariation(Enum):
+    VANILLA = "vanilla"
     PC = "pc"
-    PC_C = "pc * C"
-    ANALYTICAL_GRAD_C = "analytical gradient * C"
-    DIVIDED_DIFFERENCE_C = "divided difference * C"
+    PC_C = "C * pc"
+    ANALYTICAL_GRAD = "analytical gradient"
+    ANALYTICAL_GRAD_C = "C * analytical gradient"
+    DIVIDED_DIFFERENCE_C = "C * divided difference"
 
 
 def lincmaes(
     x: np.ndarray,
     fun: OptFun,
     switch_interval: int,
-    popsize: int | None = None,
+    popsize: int,
     maxevals: int | None = None,
-    gradient_type: GradientType = GradientType.ANALYTICAL_GRAD_C,
-) -> tuple[np.ndarray, np.ndarray]:
+    gradient_type: CMAVariation = CMAVariation.ANALYTICAL_GRAD_C,
+) -> CMAResult:
     midpoint_values = []
     evals_values = []
+    best_values = []
 
     inopts = {}
     if popsize:
@@ -45,34 +51,49 @@ def lincmaes(
             es.tell(*es.ask_and_eval(fun.fun))
             evals_values.append(es.countevals)
             midpoint_values.append(fun.fun(es.mean))
+            best_values.append(fun.fun(es.best.x))
 
         match gradient_type:
-            case GradientType.PC:
-                d = es.C @ es.pc
-            case GradientType.PC_C:
-                d = es.C @ es.pc * es.sigma
-            case GradientType.ANALYTICAL_GRAD_C:
+            case CMAVariation.PC:
+                d = es.pc
+
+            case CMAVariation.PC_C:
+                d = es.C @ es.pc  # pyright: ignore[reportOperatorIssue]
+
+            case CMAVariation.ANALYTICAL_GRAD_C:
                 d = es.C @ fun.grad(es.mean)
-            case GradientType.DIVIDED_DIFFERENCE_C:
+
+            case CMAVariation.ANALYTICAL_GRAD:
+                d = fun.grad(es.mean)
+
+            case CMAVariation.DIVIDED_DIFFERENCE_C:
                 raise NotImplementedError()
 
-        # switch to linesearch
-        d = es.C @ fun.grad(es.mean) if use_hessian else fun.grad(es.mean)
+            case _:
+                raise ValueError("Vanilla should not be passed to lincmaes")
 
-        solution, fval, funccalls = golden(one_dim(fun, es.mean, d), full_output=True)
-        es.countevals += funccalls
+        try:
+            fn = one_dim(fun, es.mean, d)
+            xa, xb, xc, fa, fb, fc, funccalls = bracket(fn, maxiter=2000)
+            es.countevals += funccalls
+            solution, fval, funccalls = golden(fn, brack=(xa, xb, xc), full_output=True)
+            es.countevals += funccalls
+
+        except Exception:
+            msg = f"Golden failed at iteration {es.countevals} for fun {fun.name}, variation {gradient_type}, k = {switch_interval // len(x)}"
+            with open("golden_failed.txt", "a") as f:
+                f.write(msg + "\n")
+            logger.error(msg)
+            continue
 
         # Shift the mean
         solution = es.mean + solution * d
         es.mean = solution
         es.pc = 0
 
-        # evals_values.append(es.countevals)
-        # midpoint_values.append(fun.fun(es.mean))
-
-        print(f"{es.countevals}: {np.linalg.norm(es.mean)}")
-
-        print(f"{es.countevals} evaluations, looping over")
-
-    print(f"{"Grad" if not use_hessian else "Hessian" } evals: {es.countevals}")
-    return np.array(midpoint_values), np.array(evals_values)
+    logger.info(
+        f"{str(gradient_type)} evals for for fun {fun.name}, variation {gradient_type}, k = {switch_interval // len(x)}: {es.countevals}"
+    )
+    return CMAResult(
+        np.array(midpoint_values), np.array(best_values), np.array(evals_values)
+    )

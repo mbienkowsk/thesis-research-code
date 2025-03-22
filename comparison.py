@@ -2,7 +2,8 @@ import multiprocessing
 from loguru import logger
 from constants import PLOT_PATH
 from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere, Rastrigin
-from lincmaes import lincmaes
+from lincmaes import CMAVariation, lincmaes
+from util import AggregatedCMAResult, CMAResult, InterpolatedCMAResult
 from wrapper import eswrapper
 import numpy as np
 import seaborn as sns
@@ -34,59 +35,62 @@ def single_comparison(
     line_interval: int,
     average_from: int = 25,
     save_plot: bool = True,
+    variations_to_test=(
+        CMAVariation.VANILLA,
+        CMAVariation.PC,
+        CMAVariation.ANALYTICAL_GRAD_C,
+        CMAVariation.PC_C,
+    ),
 ):
-    all_vanilla_values, all_vanilla_evals = [], []
-    all_hess_values, all_hess_evals = [], []
-    all_grad_values, all_grad_evals = [], []
+    results: dict = {var: [] for var in variations_to_test}
 
     for _ in range(average_from):
         x = (rng.random(dims) - 0.5) * 2 * INIT_BOUNDS
-        v_values, v_evals = eswrapper(x, fun, popsize, maxevals)
-        all_vanilla_values.append(v_values)
-        all_vanilla_evals.append(v_evals)
 
-        h_values, h_evals = lincmaes(
-            x, fun, line_interval, popsize, maxevals, use_hessian=True
-        )
-        all_hess_values.append(h_values)
-        all_hess_evals.append(h_evals)
+        if CMAVariation.VANILLA in variations_to_test:
+            results[CMAVariation.VANILLA].append(eswrapper(x, fun, popsize, maxevals))
 
-        g_values, g_evals = lincmaes(
-            x, fun, line_interval, popsize, maxevals, use_hessian=False
-        )
-        all_grad_values.append(g_values)
-        all_grad_evals.append(g_evals)
+        for variation in variations_to_test:
+            if variation == CMAVariation.VANILLA:
+                continue  # TODO: unify the interface!
 
-    highest_eval_count = max(
-        max(v[-1], h[-1], g[-1])
-        for v, h, g in zip(all_vanilla_evals, all_hess_evals, all_grad_evals)
-    )
-    vanilla_x, vanilla_y = average_interpolated_values(
-        all_vanilla_values, all_vanilla_evals, highest_eval_count
-    )
-    hess_x, hess_y = average_interpolated_values(
-        all_hess_values, all_hess_evals, highest_eval_count
-    )
-    grad_x, grad_y = average_interpolated_values(
-        all_grad_values, all_grad_evals, highest_eval_count
-    )
+            results[variation].append(
+                lincmaes(
+                    x,
+                    fun,
+                    line_interval,
+                    popsize,
+                    maxevals,
+                    gradient_type=variation,
+                )
+            )
 
-    sns.lineplot(x=vanilla_x, y=vanilla_y, label="Vanilla CMA-ES")
-    sns.lineplot(x=hess_x, y=hess_y, label="Line CMA-ES w/ Hessian approximation")
-    sns.lineplot(
-        x=grad_x, y=grad_y, label="Grad CMA-ES w/o Hessian approximation", ls="--"
-    )
+    highest_eval_count = CMAResult.highest_eval_count(results.values())
+    interpolated_results = {
+        var: InterpolatedCMAResult.from_results(results[var], highest_eval_count)
+        for var in results.keys()
+    }
+
+    fig, axes = plt.subplots(1, 2, figsize=(20, 10))
+    fig.subplots_adjust(left=0.05, right=0.95, wspace=0.2)
+    for key, result in interpolated_results.items():
+        result.plot(axes, key.value)
+    axes[0].legend()
+    axes[1].legend()
+
+    axes[0].set_yscale("log")
+    axes[1].set_yscale("log")
+    axes[0].set_title("Midpoint values vs fun evaluations")
+    axes[1].set_title("Best value vs fun evaluations")
     plt.suptitle(
-        f"Average value of {fun.name} at the midpoint after x evaluations of it."
-        + f"\nk={line_interval // dims}, lambda={popsize}, {dims} dimensions"
+        f"Function: {fun.name}, dimensions: {dims}, k: {line_interval // dims}, lambda: {popsize}"
     )
-    plt.yscale("log")
 
-    save_dir = PLOT_PATH / "hybrid" / "comparison" / fun.name
+    save_dir = PLOT_PATH / "hybrid" / "comparison_new" / fun.name
     save_dir.mkdir(parents=True, exist_ok=True)
 
     if save_plot:
-        logger.error("Saving plot")
+        logger.warning("Saving plot")
         plt.savefig(save_dir / f"dim_{dims}_k_{line_interval // dims}.png")
     else:
         plt.show()
@@ -102,23 +106,39 @@ def single_comparison_wrapper(fun: OptFun, dim: int, k: int, avg_from: int = 25)
 
 def run_all():
     dims = (30, 50)
-    funs = (Rastrigin, ShiftedRastrigin)
+    # funs = (Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic)
+    funs = (Rosen,)
     ks = (1, 2, 3, 4)
 
     with multiprocessing.Pool(6) as pool:
         pool.starmap(
             single_comparison_wrapper,
-            [(fun, dim, k, 50) for fun in funs for dim in dims for k in ks],
+            [(fun, dim, k, 5) for fun in funs for dim in dims for k in ks],
         )
 
 
-if __name__ == "__main__":
-    # dims = 30
-    # popsize = 4 * dims
-    # maxevals = 1000 * popsize
-    # line_cmaes_interval = 3 * dims
-    #
+def main():
+    dims = 30
+    popsize = 4 * dims
+    maxevals = 1000 * popsize
+    line_cmaes_interval = 3 * dims
+
     # single_comparison(
-    #     Rastrigin, dims, popsize, maxevals, line_cmaes_interval, 25, False
+    #     Sphere,
+    #     dims,
+    #     popsize,
+    #     maxevals,
+    #     line_cmaes_interval,
+    #     25,
+    #     False,
+    #     variations_to_test=(
+    #         CMAVariation.VANILLA,
+    #         CMAVariation.ANALYTICAL_GRAD_C,
+    #         CMAVariation.ANALYTICAL_GRAD,
+    #     ),
     # )
     run_all()
+
+
+if __name__ == "__main__":
+    main()
