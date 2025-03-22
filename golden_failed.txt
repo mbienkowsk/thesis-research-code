@@ -1,1 +1,7 @@
-Golden failed at iteration 129995 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 1Golden failed at iteration 129999 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 1Golden failed at iteration 129995 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4Golden failed at iteration 129998 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4
+Golden failed at iteration 129996 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4
+Golden failed at iteration 129996 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4
+Golden failed at iteration 129997 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4
+Golden failed at iteration 129999 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4
+Golden failed at iteration 129997 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4
+Golden failed at iteration 129996 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4
+Golden failed at iteration 129993 for fun Rosenbrock, variation CMAVariation.ANALYTICAL_GRAD_C, k = 4
