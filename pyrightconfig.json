@@ -1,5 +1,6 @@
 {
   "typeCheckingMode": "basic",
   "reportPrivateImportUsage": "none",
+  "reportUnusedImport": "error",
   "extraPaths": ["/home/maksym/studia/praca-inzynierska/python/pycma/"]
 }
