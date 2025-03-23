@@ -1,4 +1,3 @@
-from loguru import logger
 from cma import CMAEvolutionStrategy
 from funs import OptFun
 import numpy as np
@@ -10,10 +9,26 @@ from util import CMAResult
 def eswrapper(
     x: np.ndarray,
     fun: OptFun,
-    popsize: int | None = None,
-    maxevals: int | None = None,
+    popsize: int,
+    maxevals: int,
+    variation: CMAVariation = CMAVariation.VANILLA,
+    line_search_interval: int | None = None,
+    gradient_cost: int = 0,
 ) -> CMAResult:
     """Wraps all variations of the CMA-ES into a single function with a common interface."""
+
+    if variation != CMAVariation.VANILLA:
+        assert line_search_interval is not None, "Line search interval must be set."
+        return lincmaes(
+            x,
+            fun,
+            line_search_interval,
+            popsize,
+            maxevals,
+            gradient_type=variation,
+            gradient_cost=gradient_cost,
+        )
+
     midpoint_values = []
     evals_values = []
     best_values = []
