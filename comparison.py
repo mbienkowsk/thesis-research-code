@@ -1,17 +1,16 @@
+from collections.abc import Iterable
 import multiprocessing
+from pathlib import Path
 from loguru import logger
-from constants import PLOT_PATH
+from constants import INIT_BOUNDS, PLOT_PATH
 from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere, Rastrigin
-from lincmaes import CMAVariation, lincmaes
-from util import AggregatedCMAResult, CMAResult, InterpolatedCMAResult
+from lincmaes import CMAVariation
+from util import CMAResult, InterpolatedCMAResult
 from wrapper import eswrapper
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
-from copy import deepcopy
 
 rng = np.random.default_rng(0)
-INIT_BOUNDS = 3
 
 
 def average_interpolated_values(values, evals, maxevals):
@@ -37,8 +36,8 @@ def single_comparison(
     save_plot: bool = True,
     variations_to_test=(
         CMAVariation.VANILLA,
-        CMAVariation.PC,
         CMAVariation.ANALYTICAL_GRAD_C,
+        CMAVariation.PC,
         CMAVariation.PC_C,
     ),
 ):
@@ -47,21 +46,16 @@ def single_comparison(
     for _ in range(average_from):
         x = (rng.random(dims) - 0.5) * 2 * INIT_BOUNDS
 
-        if CMAVariation.VANILLA in variations_to_test:
-            results[CMAVariation.VANILLA].append(eswrapper(x, fun, popsize, maxevals))
-
         for variation in variations_to_test:
-            if variation == CMAVariation.VANILLA:
-                continue  # TODO: unify the interface!
 
             results[variation].append(
-                lincmaes(
-                    x,
-                    fun,
-                    line_interval,
-                    popsize,
-                    maxevals,
-                    gradient_type=variation,
+                eswrapper(
+                    x=x,
+                    fun=fun,
+                    popsize=popsize,
+                    variation=variation,
+                    line_search_interval=line_interval,
+                    maxevals=maxevals,
                 )
             )
 
@@ -70,11 +64,34 @@ def single_comparison(
         var: InterpolatedCMAResult.from_results(results[var], highest_eval_count)
         for var in results.keys()
     }
+    save_dir = (
+        PLOT_PATH / "hybrid" / f"quality_comparison_avg_{average_from}" / fun.name
+    )
+    filename = f"dim_{dims}_k_{line_interval // dims}.png"
+    plot_interpolated_results(
+        ((v, k.value) for k, v in interpolated_results.items()),
+        fun.name,
+        dims,
+        line_interval // dims,
+        popsize,
+        save_plot,
+        save_dir / filename,
+    )
 
+
+def plot_interpolated_results(
+    results: Iterable[tuple[InterpolatedCMAResult, str]],
+    fun_name: str,
+    dims: int,
+    k: int,
+    popsize: int,
+    save_plot: bool,
+    plot_path: Path | None,
+):
     fig, axes = plt.subplots(1, 2, figsize=(20, 10))
     fig.subplots_adjust(left=0.05, right=0.95, wspace=0.2)
-    for key, result in interpolated_results.items():
-        result.plot(axes, key.value)
+    for result, label in results:
+        result.plot(axes, label)
     axes[0].legend()
     axes[1].legend()
 
@@ -82,16 +99,14 @@ def single_comparison(
     axes[1].set_yscale("log")
     axes[0].set_title("Midpoint values vs fun evaluations")
     axes[1].set_title("Best value vs fun evaluations")
-    plt.suptitle(
-        f"Function: {fun.name}, dimensions: {dims}, k: {line_interval // dims}, lambda: {popsize}"
-    )
-
-    save_dir = PLOT_PATH / "hybrid" / "comparison_new" / fun.name
-    save_dir.mkdir(parents=True, exist_ok=True)
+    plt.suptitle(f"Function: {fun_name}, dimensions: {dims}, k: {k}, lambda: {popsize}")
 
     if save_plot:
+        if plot_path is None:
+            raise ValueError("No plot path provided")
         logger.warning("Saving plot")
-        plt.savefig(save_dir / f"dim_{dims}_k_{line_interval // dims}.png")
+        plot_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(plot_path)
     else:
         plt.show()
     plt.clf()
@@ -105,40 +120,16 @@ def single_comparison_wrapper(fun: OptFun, dim: int, k: int, avg_from: int = 25)
 
 
 def run_all():
-    dims = (30, 50)
-    # funs = (Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic)
-    funs = (Rosen,)
+    dims = (30,)
+    funs = (Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic)
     ks = (1, 2, 3, 4)
 
-    with multiprocessing.Pool(6) as pool:
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         pool.starmap(
             single_comparison_wrapper,
-            [(fun, dim, k, 5) for fun in funs for dim in dims for k in ks],
+            [(fun, dim, k, 50) for fun in funs for dim in dims for k in ks],
         )
 
 
-def main():
-    dims = 30
-    popsize = 4 * dims
-    maxevals = 1000 * popsize
-    line_cmaes_interval = 3 * dims
-
-    # single_comparison(
-    #     Sphere,
-    #     dims,
-    #     popsize,
-    #     maxevals,
-    #     line_cmaes_interval,
-    #     25,
-    #     False,
-    #     variations_to_test=(
-    #         CMAVariation.VANILLA,
-    #         CMAVariation.ANALYTICAL_GRAD_C,
-    #         CMAVariation.ANALYTICAL_GRAD,
-    #     ),
-    # )
-    run_all()
-
-
 if __name__ == "__main__":
-    main()
+    run_all()

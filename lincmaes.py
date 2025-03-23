@@ -1,6 +1,3 @@
-from dataclasses import dataclass, field
-from typing import Callable
-
 from loguru import logger
 from cma import CMAEvolutionStrategy
 import numpy as np
@@ -12,8 +9,6 @@ from hybrid import one_dim
 from util import CMAResult
 
 rng = np.random.default_rng(0)
-DIMENSIONS = 100
-INIT_BOUNDS = 3
 
 
 class CMAVariation(Enum):
@@ -33,6 +28,7 @@ def lincmaes(
     maxevals: int | None = None,
     gradient_type: CMAVariation = CMAVariation.ANALYTICAL_GRAD_C,
     gradient_cost: int = 0,
+    seed: int = 0,
 ) -> CMAResult:
     midpoint_values = []
     evals_values = []
@@ -43,6 +39,8 @@ def lincmaes(
         inopts["popsize"] = popsize
     if maxevals:
         inopts["maxfevals"] = maxevals
+    if seed:
+        inopts["seed"] = seed
 
     es = CMAEvolutionStrategy(x, 1, inopts=inopts)
 
