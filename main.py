@@ -1,17 +1,14 @@
 import cma
 from loguru import logger
-import numba
 import numpy as np
 from constants import PLOT_PATH
-from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere
+from funs import Elliptic, OptFun, ShiftedRastrigin, Sphere
 import matplotlib
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import multiprocessing
 from pathlib import Path
-from functools import partial
 
 from util import distance_from_optimum, plot_angle
 
