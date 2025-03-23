@@ -45,7 +45,7 @@ def sphere_grad(x):
     return 2 * x
 
 
-Sphere = OptFun(sphere, sphere_grad, "sphere", 0)
+Sphere = OptFun(sphere, sphere_grad, "Sphere", 0)
 
 Rosen = OptFun(cma.ff.rosen, cma.ff.grad_rosen, "Rosenbrock", 1)
 
