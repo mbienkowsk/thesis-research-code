@@ -104,5 +104,5 @@ class InterpolatedCMAResult:
         )
 
     def plot(self, axes: list[plt.Axes], label: str):
-        axes[0].plot(self.x, self.midpoint_values, label=f"{label} midpoint")
-        axes[1].plot(self.x, self.best_values, label=f"{label} best")
+        axes[0].plot(self.x, self.midpoint_values, label=f"{label}")
+        axes[1].plot(self.x, self.best_values, label=f"{label}")

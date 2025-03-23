@@ -14,6 +14,7 @@ def eswrapper(
     variation: CMAVariation = CMAVariation.VANILLA,
     line_search_interval: int | None = None,
     gradient_cost: int = 0,
+    seed: int = 0,
 ) -> CMAResult:
     """Wraps all variations of the CMA-ES into a single function with a common interface."""
 
@@ -27,6 +28,7 @@ def eswrapper(
             maxevals,
             gradient_type=variation,
             gradient_cost=gradient_cost,
+            seed=seed,
         )
 
     midpoint_values = []
@@ -38,6 +40,8 @@ def eswrapper(
         inopts["popsize"] = popsize
     if maxevals:
         inopts["maxfevals"] = maxevals
+    if seed:
+        inopts["seed"] = seed
 
     es = CMAEvolutionStrategy(x, 1, inopts=inopts)
 
