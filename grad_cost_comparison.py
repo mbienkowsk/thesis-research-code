@@ -35,6 +35,7 @@ def single_run(fun: OptFun, dim: int, k: int, avg_from=25):
                     line_search_interval=k * dim,
                     maxevals=maxevals,
                     gradient_cost=combo[1],
+                    seed=1,
                 )
             )
 
@@ -45,7 +46,7 @@ def single_run(fun: OptFun, dim: int, k: int, avg_from=25):
             )
             for combo in results.keys()
         }
-        save_dir = PLOT_PATH / "hybrid" / "gradient_cost_comparison" / fun.name
+        save_dir = PLOT_PATH / f"gradient_cost_comparison_avg_{avg_from}" / fun.name
         filename = f"dim_{dim}_k_{k}.png"
         plot_interpolated_results(
             (
@@ -67,8 +68,8 @@ if __name__ == "__main__":
     funs = ALL_FUNS
     ks = (1, 2, 3, 4)
 
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    with multiprocessing.Pool(5) as pool:
         pool.starmap(
             single_run,
-            [(fun, dim, k, 25) for fun in funs for dim in dims for k in ks],
+            [(fun, dim, k, 50) for fun in funs for dim in dims for k in ks],
         )

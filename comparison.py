@@ -64,9 +64,7 @@ def single_comparison(
         var: InterpolatedCMAResult.from_results(results[var], highest_eval_count)
         for var in results.keys()
     }
-    save_dir = (
-        PLOT_PATH / "hybrid" / f"quality_comparison_avg_{average_from}" / fun.name
-    )
+    save_dir = PLOT_PATH / f"quality_comparison_avg_{average_from}" / fun.name
     filename = f"dim_{dims}_k_{line_interval // dims}.png"
     plot_interpolated_results(
         ((v, k.value) for k, v in interpolated_results.items()),

@@ -70,7 +70,7 @@ def single_run(fun: OptFun, popsize: int | None = None):
             midpoint_values.append(fun.fun(es.mean))
             midpoint_distances.append(np.linalg.norm(es.mean - actual_optimum))
 
-    save_dir = PLOT_PATH / "hybrid" / fun.name / str(DIMENSIONS)
+    save_dir = PLOT_PATH / fun.name / str(DIMENSIONS)
     save_dir.mkdir(parents=True, exist_ok=True)
 
     x = np.array(cutoffs)
