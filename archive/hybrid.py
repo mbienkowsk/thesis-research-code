@@ -2,22 +2,12 @@ from loguru import logger
 import cma
 from scipy.optimize import golden
 from constants import PLOT_PATH
-from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere
+from funs import OptFun, Sphere
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from util import distance_from_optimum
-
-
-def one_dim(fun, x, d):
-    """Gimmick to make a multdimensional function 1dim
-    with a set direction d"""
-
-    def wrapper(alpha):
-        return fun.fun(x + alpha * d)
-
-    return wrapper
+from lincmaes import one_dim
 
 
 DIMENSIONS = 100
