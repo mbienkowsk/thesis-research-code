@@ -3,10 +3,11 @@ from cma import CMAEvolutionStrategy
 import numpy as np
 from scipy.optimize import bracket, golden
 from enum import Enum
+from scipy.differentiate import derivative
 
 from funs import OptFun
 from hybrid import one_dim
-from util import CMAResult
+from util import CMAResult, gradient_central
 
 rng = np.random.default_rng(0)
 
@@ -17,7 +18,8 @@ class CMAVariation(Enum):
     PC_C = "C * pc"
     ANALYTICAL_GRAD = "analytical gradient"
     ANALYTICAL_GRAD_C = "C * analytical gradient"
-    DIVIDED_DIFFERENCE_C = "C * divided difference"
+    CENTRAL_DIFFERENCE_C = "C * central difference"
+    FORWARD_DIFFERENCE_C = "C * forward difference"
 
 
 def lincmaes(
@@ -67,8 +69,15 @@ def lincmaes(
                 es.countevals += gradient_cost
                 d = fun.grad(es.mean)
 
-            case CMAVariation.DIVIDED_DIFFERENCE_C:
-                raise NotImplementedError()
+            case CMAVariation.CENTRAL_DIFFERENCE_C:
+                es.countevals += 2 * len(es.mean)
+                d = es.C @ gradient_central(fun.fun, es.mean)
+
+            case CMAVariation.FORWARD_DIFFERENCE_C:
+                es.countevals += len(es.mean)
+                d = es.C @ derivative(
+                    fun.fun, es.mean
+                )  # pyright: ignore[reportOperatorIssue]
 
             case _:
                 raise ValueError("Vanilla should not be passed to lincmaes")

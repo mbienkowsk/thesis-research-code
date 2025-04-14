@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Callable
 import numba
 import numpy as np
 import seaborn as sns
@@ -106,3 +107,68 @@ class InterpolatedCMAResult:
     def plot(self, axes: list[plt.Axes], label: str):
         axes[0].plot(self.x, self.midpoint_values, label=f"{label}")
         axes[1].plot(self.x, self.best_values, label=f"{label}")
+
+
+@numba.njit
+def gradient_forward(func: Callable, x: np.ndarray, h: float = 1e-6) -> np.ndarray:
+    """
+    Calculate the gradient of a function at point x using forward difference.
+
+    Parameters:
+    -----------
+    func : Callable
+        Function to differentiate. Should take a numpy array and return a scalar.
+    x : np.ndarray
+        Point at which to calculate the gradient.
+    h : float, optional
+        Step size for finite difference, default 1e-6.
+
+    Returns:
+    --------
+    np.ndarray
+        Gradient vector of the function at point x.
+    """
+    n = len(x)
+    grad = np.zeros_like(x, dtype=float)
+    f0 = func(x)
+
+    for i in range(n):
+        x_plus = x.copy()
+        x_plus[i] += h
+        grad[i] = (func(x_plus) - f0) / h
+
+    return grad
+
+
+@numba.njit
+def gradient_central(func: Callable, x: np.ndarray, h: float = 1e-6) -> np.ndarray:
+    """
+    Calculate the gradient of a function at point x using central difference.
+
+    Parameters:
+    -----------
+    func : Callable
+        Function to differentiate. Should take a numpy array and return a scalar.
+    x : np.ndarray
+        Point at which to calculate the gradient.
+    h : float, optional
+        Step size for finite difference, default 1e-6.
+
+    Returns:
+    --------
+    np.ndarray
+        Gradient vector of the function at point x.
+    """
+    n = len(x)
+    grad = np.zeros_like(x, dtype=float)
+
+    for i in range(n):
+        x_plus = x.copy()
+        x_minus = x.copy()
+
+        x_plus[i] += h
+        x_minus[i] -= h
+
+        grad[i] = (func(x_plus) - func(x_minus)) / (2 * h)
+
+    return grad
