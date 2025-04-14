@@ -1,4 +1,5 @@
 from cma import CMAEvolutionStrategy
+from constants import DEFAULT_CMA_OPTIONS
 from funs import OptFun
 import numpy as np
 
@@ -35,7 +36,7 @@ def eswrapper(
     evals_values = []
     best_values = []
 
-    inopts = {}
+    inopts = DEFAULT_CMA_OPTIONS.copy()
     if popsize:
         inopts["popsize"] = popsize
     if maxevals:
