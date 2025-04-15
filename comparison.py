@@ -3,6 +3,7 @@ import multiprocessing
 from pathlib import Path
 from loguru import logger
 from opfunu.cec_based.cec import CecBenchmark
+from cec import cec_range
 from constants import ALL_FUNS, INIT_BOUNDS, PLOT_PATH
 from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere, Rastrigin
 from lincmaes import CMAVariation
@@ -38,14 +39,18 @@ def single_comparison(
     variations_to_test=(
         CMAVariation.VANILLA,
         CMAVariation.PC_C,
-        CMAVariation.CENTRAL_DIFFERENCE_C,
         CMAVariation.FORWARD_DIFFERENCE_C,
     ),
 ):
     results: dict = {var: [] for var in variations_to_test}
 
     for _ in range(average_from):
-        x = (rng.random(dims) - 0.5) * 2 * INIT_BOUNDS
+        if isinstance(fun, CecBenchmark):
+            bounds = 100
+        else:
+            bounds = INIT_BOUNDS
+
+        x = (rng.random(dims) - 0.5) * 2 * bounds
 
         for variation in variations_to_test:
 
@@ -124,10 +129,6 @@ def run_all(
     ks: tuple = (1, 2, 3, 4),
     avg_from: int = 25,
 ):
-    dims = (50,)
-    funs = (Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic)
-    ks = (1, 2, 3, 4)
-    avg_from = 50
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         pool.starmap(
@@ -137,4 +138,10 @@ def run_all(
 
 
 if __name__ == "__main__":
-    run_all((30,), (Rastrigin,), (3, 4), avg_from=10)
+    dims = 10
+    run_all(
+        dims=(dims,),
+        # funs=tuple(cec_range(1, 4, dims)),
+        ks=tuple(range(1, 5)),
+        avg_from=1,
+    )

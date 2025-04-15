@@ -7,7 +7,7 @@ from enum import Enum
 from scipy.differentiate import derivative
 
 from funs import OptFun
-from util import CMAResult, get_function, gradient_central
+from util import CMAResult, get_function, gradient_central, gradient_forward
 
 rng = np.random.default_rng(0)
 
@@ -94,7 +94,7 @@ def lincmaes(
 
             case CMAVariation.FORWARD_DIFFERENCE_C:
                 es.countevals += len(es.mean)
-                d = es.C @ derivative(
+                d = es.C @ gradient_forward(
                     get_function(fun), es.mean
                 )  # pyright: ignore[reportOperatorIssue]
 

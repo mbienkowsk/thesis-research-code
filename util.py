@@ -112,7 +112,6 @@ class InterpolatedCMAResult:
         axes[1].plot(self.x, self.best_values, label=f"{label}")
 
 
-@numba.njit
 def gradient_forward(func: Callable, x: np.ndarray, h: float = 1e-6) -> np.ndarray:
     """
     Calculate the gradient of a function at point x using forward difference.
@@ -143,7 +142,6 @@ def gradient_forward(func: Callable, x: np.ndarray, h: float = 1e-6) -> np.ndarr
     return grad
 
 
-@numba.njit
 def gradient_central(func: Callable, x: np.ndarray, h: float = 1e-6) -> np.ndarray:
     """
     Calculate the gradient of a function at point x using central difference.
