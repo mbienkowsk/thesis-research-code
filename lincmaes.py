@@ -4,7 +4,6 @@ from cma import CMAEvolutionStrategy
 import numpy as np
 from scipy.optimize import bracket, golden
 from enum import Enum
-from scipy.differentiate import derivative
 
 from funs import OptFun
 from util import CMAResult, get_function, gradient_central, gradient_forward
@@ -108,7 +107,7 @@ def lincmaes(
             solution, fval, funccalls = golden(fn, brack=(xa, xb, xc), full_output=True)
             es.countevals += funccalls
 
-        except RuntimeError:
+        except (RuntimeError, ValueError):
             msg = f"Golden failed at iteration {es.countevals} for fun {fun.name}, variation {gradient_type}, k = {switch_interval // len(x)}"
             with open("golden_failed.txt", "a") as f:
                 f.write(msg + "\n")
