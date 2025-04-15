@@ -4,8 +4,11 @@ from dataclasses import dataclass
 from typing import Callable
 import numba
 import numpy as np
+from opfunu.cec_based.cec import CecBenchmark
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+from funs import OptFun
 
 
 @numba.njit
@@ -172,3 +175,11 @@ def gradient_central(func: Callable, x: np.ndarray, h: float = 1e-6) -> np.ndarr
         grad[i] = (func(x_plus) - func(x_minus)) / (2 * h)
 
     return grad
+
+
+def get_function(f: CecBenchmark | OptFun):
+    """Common interface for CEC and OptFun functions."""
+    if isinstance(f, CecBenchmark):
+        return f.evaluate
+    else:
+        return f.fun

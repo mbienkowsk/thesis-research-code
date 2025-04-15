@@ -1,15 +1,16 @@
+from opfunu.cec_based.cec import CecBenchmark
 from cma import CMAEvolutionStrategy
 from constants import DEFAULT_CMA_OPTIONS
 from funs import OptFun
 import numpy as np
 
 from lincmaes import CMAVariation, lincmaes
-from util import CMAResult
+from util import CMAResult, get_function
 
 
 def eswrapper(
     x: np.ndarray,
-    fun: OptFun,
+    fun: OptFun | CecBenchmark,
     popsize: int,
     maxevals: int,
     variation: CMAVariation = CMAVariation.VANILLA,
@@ -47,10 +48,11 @@ def eswrapper(
     es = CMAEvolutionStrategy(x, 1, inopts=inopts)
 
     while not es.stop():
-        es.tell(*es.ask_and_eval(fun.fun))
+        f = get_function(fun)
+        es.tell(*es.ask_and_eval(f))
         evals_values.append(es.countevals)
-        midpoint_values.append(fun.fun(es.mean))
-        best_values.append(fun.fun(es.best.x))
+        midpoint_values.append(f(es.mean))
+        best_values.append(f(es.best.x))
 
     print(f"Vanilla total evals: {es.countevals}")
     return CMAResult(

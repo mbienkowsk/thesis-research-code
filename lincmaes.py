@@ -1,4 +1,5 @@
 from loguru import logger
+from opfunu.cec_based.cec import CecBenchmark
 from cma import CMAEvolutionStrategy
 import numpy as np
 from scipy.optimize import bracket, golden
@@ -6,10 +7,19 @@ from enum import Enum
 from scipy.differentiate import derivative
 
 from funs import OptFun
-from hybrid import one_dim
-from util import CMAResult, gradient_central
+from util import CMAResult, get_function, gradient_central
 
 rng = np.random.default_rng(0)
+
+
+def one_dim(fun: OptFun | CecBenchmark, x, d):
+    """Gimmick to make a multdimensional function 1dim
+    with a set direction d"""
+
+    def wrapper(alpha):
+        return get_function(fun)(x + alpha * d)
+
+    return wrapper
 
 
 class CMAVariation(Enum):
@@ -24,7 +34,7 @@ class CMAVariation(Enum):
 
 def lincmaes(
     x: np.ndarray,
-    fun: OptFun,
+    fun: OptFun | CecBenchmark,
     switch_interval: int,
     popsize: int,
     maxevals: int | None = None,
@@ -49,10 +59,11 @@ def lincmaes(
     while not es.stop():
 
         for i in range(switch_interval):
-            es.tell(*es.ask_and_eval(fun.fun))
+            f = get_function(fun)
+            es.tell(*es.ask_and_eval(f))
             evals_values.append(es.countevals)
-            midpoint_values.append(fun.fun(es.mean))
-            best_values.append(fun.fun(es.best.x))
+            midpoint_values.append(f(es.mean))
+            best_values.append(f(es.best.x))
 
         match gradient_type:
             case CMAVariation.PC:
@@ -62,21 +73,29 @@ def lincmaes(
                 d = es.C @ es.pc  # pyright: ignore[reportOperatorIssue]
 
             case CMAVariation.ANALYTICAL_GRAD_C:
+                if isinstance(fun, CecBenchmark):
+                    raise ValueError(
+                        "CecBenchmark does not support analytical gradient"
+                    )
                 es.countevals += gradient_cost
                 d = es.C @ fun.grad(es.mean)
 
             case CMAVariation.ANALYTICAL_GRAD:
+                if isinstance(fun, CecBenchmark):
+                    raise ValueError(
+                        "CecBenchmark does not support analytical gradient"
+                    )
                 es.countevals += gradient_cost
                 d = fun.grad(es.mean)
 
             case CMAVariation.CENTRAL_DIFFERENCE_C:
                 es.countevals += 2 * len(es.mean)
-                d = es.C @ gradient_central(fun.fun, es.mean)
+                d = es.C @ gradient_central(get_function(fun), es.mean)
 
             case CMAVariation.FORWARD_DIFFERENCE_C:
                 es.countevals += len(es.mean)
                 d = es.C @ derivative(
-                    fun.fun, es.mean
+                    get_function(fun), es.mean
                 )  # pyright: ignore[reportOperatorIssue]
 
             case _:
@@ -89,7 +108,7 @@ def lincmaes(
             solution, fval, funccalls = golden(fn, brack=(xa, xb, xc), full_output=True)
             es.countevals += funccalls
 
-        except Exception:
+        except RuntimeError:
             msg = f"Golden failed at iteration {es.countevals} for fun {fun.name}, variation {gradient_type}, k = {switch_interval // len(x)}"
             with open("golden_failed.txt", "a") as f:
                 f.write(msg + "\n")

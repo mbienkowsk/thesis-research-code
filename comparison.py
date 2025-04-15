@@ -2,7 +2,8 @@ from collections.abc import Iterable
 import multiprocessing
 from pathlib import Path
 from loguru import logger
-from constants import INIT_BOUNDS, PLOT_PATH
+from opfunu.cec_based.cec import CecBenchmark
+from constants import ALL_FUNS, INIT_BOUNDS, PLOT_PATH
 from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere, Rastrigin
 from lincmaes import CMAVariation
 from util import CMAResult, InterpolatedCMAResult
@@ -27,7 +28,7 @@ def average_interpolated_values(values, evals, maxevals):
 
 
 def single_comparison(
-    fun: OptFun,
+    fun: OptFun | CecBenchmark,
     dims: int,
     popsize: int,
     maxevals: int,
@@ -36,9 +37,9 @@ def single_comparison(
     save_plot: bool = True,
     variations_to_test=(
         CMAVariation.VANILLA,
-        CMAVariation.ANALYTICAL_GRAD_C,
-        CMAVariation.PC,
         CMAVariation.PC_C,
+        CMAVariation.CENTRAL_DIFFERENCE_C,
+        CMAVariation.FORWARD_DIFFERENCE_C,
     ),
 ):
     results: dict = {var: [] for var in variations_to_test}
@@ -117,17 +118,23 @@ def single_comparison_wrapper(fun: OptFun, dim: int, k: int, avg_from: int = 25)
     single_comparison(fun, dim, popsize, maxevals, line_cmaes_interval, avg_from)
 
 
-def run_all():
-    dims = (30,)
+def run_all(
+    dims: tuple[int] = (50,),
+    funs: tuple = ALL_FUNS,
+    ks: tuple = (1, 2, 3, 4),
+    avg_from: int = 25,
+):
+    dims = (50,)
     funs = (Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic)
     ks = (1, 2, 3, 4)
+    avg_from = 50
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         pool.starmap(
             single_comparison_wrapper,
-            [(fun, dim, k, 50) for fun in funs for dim in dims for k in ks],
+            [(fun, dim, k, avg_from) for fun in funs for dim in dims for k in ks],
         )
 
 
 if __name__ == "__main__":
-    run_all()
+    run_all((30,), (Rastrigin,), (3, 4), avg_from=10)
