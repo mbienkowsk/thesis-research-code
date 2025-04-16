@@ -112,7 +112,7 @@ class InterpolatedCMAResult:
         axes[1].plot(self.x, self.best_values, label=f"{label}")
 
 
-def gradient_forward(func: Callable, x: np.ndarray, h: float = 1e-6) -> np.ndarray:
+def gradient_forward(func: Callable, x: np.ndarray, h: float = 1e-3) -> np.ndarray:
     """
     Calculate the gradient of a function at point x using forward difference.
 

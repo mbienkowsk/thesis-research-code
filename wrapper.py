@@ -54,7 +54,6 @@ def eswrapper(
         midpoint_values.append(f(es.mean))
         best_values.append(f(es.best.x))
 
-    print(f"Vanilla total evals: {es.countevals}")
     return CMAResult(
         np.array(midpoint_values), np.array(best_values), np.array(evals_values)
     )

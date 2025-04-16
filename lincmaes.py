@@ -94,7 +94,7 @@ def lincmaes(
             case CMAVariation.FORWARD_DIFFERENCE_C:
                 es.countevals += len(es.mean)
                 d = es.C @ gradient_forward(
-                    get_function(fun), es.mean
+                    get_function(fun), es.mean, 1e-3
                 )  # pyright: ignore[reportOperatorIssue]
 
             case _:
@@ -107,11 +107,18 @@ def lincmaes(
             solution, fval, funccalls = golden(fn, brack=(xa, xb, xc), full_output=True)
             es.countevals += funccalls
 
-        except (RuntimeError, ValueError):
-            msg = f"Golden failed at iteration {es.countevals} for fun {fun.name}, variation {gradient_type}, k = {switch_interval // len(x)}"
-            with open("golden_failed.txt", "a") as f:
-                f.write(msg + "\n")
-            logger.error(msg)
+        except RuntimeError:
+            with open("golden_failed.csv", "a") as f:
+                f.write(
+                    f"bracket,{fun.name},{es.countevals},{gradient_type},{switch_interval // len(x)}\n"
+                )
+            continue
+
+        except ValueError:
+            with open("golden_failed.csv", "a") as f:
+                f.write(
+                    f"golden,{fun.name},{es.countevals},{gradient_type},{switch_interval // len(x)}\n"
+                )
             continue
 
         # Shift the mean
@@ -119,9 +126,6 @@ def lincmaes(
         es.mean = solution
         es.pc = 0
 
-    logger.info(
-        f"{str(gradient_type)} evals for for fun {fun.name}, variation {gradient_type}, k = {switch_interval // len(x)}: {es.countevals}"
-    )
     return CMAResult(
         np.array(midpoint_values), np.array(best_values), np.array(evals_values)
     )
