@@ -139,9 +139,11 @@ def run_all(
 
 if __name__ == "__main__":
     dims = 10
-    run_all(
-        dims=(dims,),
-        # funs=tuple(cec_range(1, 4, dims)),
-        ks=tuple(range(1, 5)),
-        avg_from=1,
-    )
+    with open("golden_failed.csv", "w") as f:
+        f.truncate()
+    for _ in range(5):
+        run_all(
+            dims=(dims,),
+            funs=tuple(cec_range(1, 4, dims)),
+            avg_from=1,
+        )
