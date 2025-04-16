@@ -5,10 +5,11 @@ from funs import Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic
 
 
 PLOT_PATH = Path("plots/")
-INIT_BOUNDS = 3
+INIT_BOUNDS = 100
 ALL_FUNS = (Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic)
 
 DEFAULT_CMA_OPTIONS: dict[str, Any] = {
-    "tolfun": None,
-    "tolfunhist": None,
+    "tolfun": 1e-16,
+    "tolfunhist": 1e-16,
+    "tolflatfitness": 3,
 }
