@@ -1,4 +1,3 @@
-from loguru import logger
 from opfunu.cec_based.cec import CecBenchmark
 from cma import CMAEvolutionStrategy
 import numpy as np
@@ -127,5 +126,11 @@ def lincmaes(
         es.pc = 0
 
     return CMAResult(
-        np.array(midpoint_values), np.array(best_values), np.array(evals_values)
+        fun=fun,
+        dim=len(x),
+        k=int(switch_interval / len(x)),
+        grad_variation=gradient_type,
+        midpoint_values=np.array(midpoint_values),
+        best_values=np.array(best_values),
+        nums_evals=np.array(evals_values),
     )

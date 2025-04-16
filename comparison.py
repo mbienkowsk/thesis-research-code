@@ -5,7 +5,7 @@ from loguru import logger
 from opfunu.cec_based.cec import CecBenchmark
 from cec import cec_range
 from constants import ALL_FUNS, INIT_BOUNDS, PLOT_PATH
-from funs import Elliptic, OptFun, ShiftedRastrigin, Rosen, Sphere, Rastrigin
+from funs import OptFun
 from lincmaes import CMAVariation
 from util import CMAResult, InterpolatedCMAResult
 from wrapper import eswrapper

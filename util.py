@@ -9,6 +9,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from funs import OptFun
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from lincmaes import CMAVariation
 
 
 @numba.njit
@@ -40,7 +45,15 @@ def plot_angle(grad, pc, angle, mean):
 
 
 @dataclass
-class CMAResult:
+class BaseResult:
+    fun: OptFun | CecBenchmark
+    dim: int
+    k: int | None
+    grad_variation: "CMAVariation"
+
+
+@dataclass
+class CMAResult(BaseResult):
     midpoint_values: np.ndarray
     best_values: np.ndarray
     nums_evals: np.ndarray
@@ -51,22 +64,31 @@ class CMAResult:
 
 
 @dataclass
-class AggregatedCMAResult:
+class AggregatedCMAResult(BaseResult):
     midpoint_values: list[np.ndarray]
     best_values: list[np.ndarray]
     nums_evals: list[np.ndarray]
 
     @classmethod
-    def from_results(cls, results: Iterable[CMAResult]):
+    def from_results(cls, results: list[CMAResult]):
+        fun = results[0].fun
+        dim = results[0].dim
+        k = results[0].k
+        grad_variation = results[0].grad_variation
+
         return cls(
-            [r.midpoint_values for r in results],
-            [r.best_values for r in results],
-            [r.nums_evals for r in results],
+            fun=fun,
+            dim=dim,
+            k=k,
+            grad_variation=grad_variation,
+            midpoint_values=[r.midpoint_values for r in results],
+            best_values=[r.best_values for r in results],
+            nums_evals=[r.nums_evals for r in results],
         )
 
 
 @dataclass
-class InterpolatedCMAResult:
+class InterpolatedCMAResult(BaseResult):
     x: np.ndarray
     midpoint_values: np.ndarray
     best_values: np.ndarray
@@ -80,8 +102,12 @@ class InterpolatedCMAResult:
         x = np.linspace(0, maxevals, shortest_y)
 
         return cls(
-            x,
-            np.mean(
+            fun=results.fun,
+            dim=results.dim,
+            k=results.k,
+            grad_variation=results.grad_variation,
+            x=x,
+            midpoint_values=np.mean(
                 np.array(
                     [
                         np.interp(x, e, v)
@@ -90,7 +116,7 @@ class InterpolatedCMAResult:
                 ),
                 axis=0,
             ),
-            np.mean(
+            best_values=np.mean(
                 np.array(
                     [
                         np.interp(x, e, v)
@@ -102,7 +128,7 @@ class InterpolatedCMAResult:
         )
 
     @classmethod
-    def from_results(cls, results: Iterable[CMAResult], maxevals: int):
+    def from_results(cls, results: list[CMAResult], maxevals: int):
         return cls.from_aggregated_results(
             AggregatedCMAResult.from_results(results), maxevals
         )
@@ -113,23 +139,6 @@ class InterpolatedCMAResult:
 
 
 def gradient_forward(func: Callable, x: np.ndarray, h: float = 1e-3) -> np.ndarray:
-    """
-    Calculate the gradient of a function at point x using forward difference.
-
-    Parameters:
-    -----------
-    func : Callable
-        Function to differentiate. Should take a numpy array and return a scalar.
-    x : np.ndarray
-        Point at which to calculate the gradient.
-    h : float, optional
-        Step size for finite difference, default 1e-6.
-
-    Returns:
-    --------
-    np.ndarray
-        Gradient vector of the function at point x.
-    """
     n = len(x)
     grad = np.zeros_like(x, dtype=float)
     f0 = func(x)
@@ -143,23 +152,6 @@ def gradient_forward(func: Callable, x: np.ndarray, h: float = 1e-3) -> np.ndarr
 
 
 def gradient_central(func: Callable, x: np.ndarray, h: float = 1e-6) -> np.ndarray:
-    """
-    Calculate the gradient of a function at point x using central difference.
-
-    Parameters:
-    -----------
-    func : Callable
-        Function to differentiate. Should take a numpy array and return a scalar.
-    x : np.ndarray
-        Point at which to calculate the gradient.
-    h : float, optional
-        Step size for finite difference, default 1e-6.
-
-    Returns:
-    --------
-    np.ndarray
-        Gradient vector of the function at point x.
-    """
     n = len(x)
     grad = np.zeros_like(x, dtype=float)
 

@@ -55,5 +55,11 @@ def eswrapper(
         best_values.append(f(es.best.x))
 
     return CMAResult(
-        np.array(midpoint_values), np.array(best_values), np.array(evals_values)
+        fun=fun,
+        dim=len(x),
+        k=None,
+        grad_variation=variation,
+        midpoint_values=np.array(midpoint_values),
+        best_values=np.array(best_values),
+        nums_evals=np.array(evals_values),
     )
