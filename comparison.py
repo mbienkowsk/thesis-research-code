@@ -30,10 +30,8 @@ def average_interpolated_values(values, evals, maxevals):
 
 def single_comparison(
     fun: OptFun | CecBenchmark,
-    dims: int,
-    popsize: int,
-    maxevals: int,
-    line_interval: int,
+    dim: int,
+    k: int,
     average_from: int = 25,
     save_plot: bool = True,
     variations_to_test=(
@@ -42,7 +40,12 @@ def single_comparison(
         CMAVariation.FORWARD_DIFFERENCE_C,
     ),
 ):
+    """Run a single comparison of the different variations of CMA-ES."""
+
     results: dict = {var: [] for var in variations_to_test}
+    line_interval = k * dim
+    popsize = 4 * dim
+    maxevals = 1000 * popsize
 
     for _ in range(average_from):
         if isinstance(fun, CecBenchmark):
@@ -50,7 +53,7 @@ def single_comparison(
         else:
             bounds = INIT_BOUNDS
 
-        x = (rng.random(dims) - 0.5) * 2 * bounds
+        x = (rng.random(dim) - 0.5) * 2 * bounds
 
         for variation in variations_to_test:
 
@@ -71,12 +74,12 @@ def single_comparison(
         for var in results.keys()
     }
     save_dir = PLOT_PATH / f"quality_comparison_avg_{average_from}" / fun.name
-    filename = f"dim_{dims}_k_{line_interval // dims}.png"
+    filename = f"dim_{dim}_k_{line_interval // dim}.png"
     plot_interpolated_results(
         ((v, k.value) for k, v in interpolated_results.items()),
         fun.name,
-        dims,
-        line_interval // dims,
+        dim,
+        line_interval // dim,
         popsize,
         save_plot,
         save_dir / filename,
@@ -116,23 +119,17 @@ def plot_interpolated_results(
     plt.clf()
 
 
-def single_comparison_wrapper(fun: OptFun, dim: int, k: int, avg_from: int = 25):
-    popsize = 4 * dim
-    maxevals = 1000 * popsize
-    line_cmaes_interval = k * dim
-    single_comparison(fun, dim, popsize, maxevals, line_cmaes_interval, avg_from)
-
-
-def run_all(
+def multiple_comparisons(
     dims: tuple[int] = (50,),
     funs: tuple = ALL_FUNS,
     ks: tuple = (1, 2, 3, 4),
     avg_from: int = 25,
 ):
+    """Run multiple comparisons in parallel."""
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         pool.starmap(
-            single_comparison_wrapper,
+            single_comparison,
             [(fun, dim, k, avg_from) for fun in funs for dim in dims for k in ks],
         )
 
@@ -142,7 +139,7 @@ if __name__ == "__main__":
     with open("golden_failed.csv", "w") as f:
         f.truncate()
     for _ in range(5):
-        run_all(
+        multiple_comparisons(
             dims=(dims,),
             funs=tuple(cec_range(1, 4, dims)),
             avg_from=1,
