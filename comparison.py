@@ -3,7 +3,7 @@ import multiprocessing
 from pathlib import Path
 from loguru import logger
 from opfunu.cec_based.cec import CecBenchmark
-from cec import cec_range
+from cec import get_cec2017_for_dim
 from constants import ALL_FUNS, INIT_BOUNDS, PLOT_PATH
 from funs import OptFun
 from lincmaes import CMAVariation
@@ -138,9 +138,9 @@ if __name__ == "__main__":
     dims = 10
     with open("golden_failed.csv", "w") as f:
         f.truncate()
-    for _ in range(5):
-        multiple_comparisons(
-            dims=(dims,),
-            funs=tuple(cec_range(1, 4, dims)),
-            avg_from=1,
-        )
+    multiple_comparisons(
+        dims=(dims,),
+        funs=(get_cec2017_for_dim(14, dims),),
+        # funs=tuple(cec_range(28, 27, dims)),
+        avg_from=50,
+    )

@@ -49,7 +49,12 @@ def eswrapper(
 
     while not es.stop():
         f = get_function(fun)
-        es.tell(*es.ask_and_eval(f))
+        try:
+            es.tell(*es.ask_and_eval(f))
+        except ValueError:
+            with open("error.csv", "a") as f:
+                f.write(f"{fun.name},{es.countevals},{es.mean},{grad_variation}\n")
+
         evals_values.append(es.countevals)
         midpoint_values.append(f(es.mean))
         best_values.append(f(es.best.x))
