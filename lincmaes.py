@@ -58,7 +58,15 @@ def lincmaes(
 
         for i in range(switch_interval):
             f = get_function(fun)
-            es.tell(*es.ask_and_eval(f))
+            # TODO: figure out why this even happens
+            try:
+                es.tell(*es.ask_and_eval(f))
+            except ValueError:
+                with open("lincmaes_failed.csv", "a") as file:
+                    file.write(
+                        f"{fun.name},{es.countevals},{gradient_type},{switch_interval // len(x)}, {f(es.mean)}\n"
+                    )
+                    continue
             evals_values.append(es.countevals)
             midpoint_values.append(f(es.mean))
             best_values.append(f(es.best.x))
@@ -123,7 +131,7 @@ def lincmaes(
         # Shift the mean
         solution = es.mean + solution * d
         es.mean = solution
-        es.pc = 0
+        es.pc = np.zeros_like(solution)
 
     return CMAResult(
         fun=fun,
