@@ -1,11 +1,11 @@
 from opfunu.cec_based.cec import CecBenchmark
 from cma import CMAEvolutionStrategy
-from constants import DEFAULT_CMA_OPTIONS
-from funs import OptFun
+from .constants import DEFAULT_CMA_OPTIONS
+from .funs import OptFun
 import numpy as np
 
-from lincmaes import CMAVariation, lincmaes
-from util import CMAResult, get_function
+from .lincmaes import CMAVariation, lincmaes
+from .util import CMAResult, get_function
 
 
 def eswrapper(

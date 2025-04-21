@@ -4,8 +4,8 @@ import numpy as np
 from scipy.optimize import bracket, golden
 from enum import Enum
 
-from funs import OptFun
-from util import CMAResult, get_function, gradient_central, gradient_forward
+from .funs import OptFun
+from .util import CMAResult, get_function, gradient_central, gradient_forward
 
 rng = np.random.default_rng(0)
 

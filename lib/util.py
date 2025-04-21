@@ -8,7 +8,7 @@ from opfunu.cec_based.cec import CecBenchmark
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from funs import OptFun
+from .funs import OptFun
 from typing import TYPE_CHECKING
 
 

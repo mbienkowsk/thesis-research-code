@@ -5,18 +5,18 @@ import matplotlib.pyplot as plt
 import multiprocessing
 from pathlib import Path
 from typing import Callable
-from comparison import average_interpolated_values
-from funs import Elliptic, OptFun
+from .comparison import average_interpolated_values
+from lib.funs import Elliptic, OptFun
 import numpy as np
 from sympy import prime
 from scipy.optimize import OptimizeResult, minimize
 
-from lincmaes import CMAVariation
-from wrapper import eswrapper
+from lib.lincmaes import CMAVariation
+from lib.wrapper import eswrapper
 
 rng = np.random.default_rng(0)
 BOUNDS = 3
-DIM = 1000
+DIM = 3
 RESULT_DIR = Path("csv_results")
 
 
