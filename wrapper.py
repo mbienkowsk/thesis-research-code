@@ -52,8 +52,8 @@ def eswrapper(
         try:
             es.tell(*es.ask_and_eval(f))
         except ValueError:
-            with open("error.csv", "a") as f:
-                f.write(f"{fun.name},{es.countevals},{es.mean},{grad_variation}\n")
+            with open("error.csv", "a") as file:
+                file.write(f"{fun.name},{es.countevals},{es.mean},{variation}\n")
 
         evals_values.append(es.countevals)
         midpoint_values.append(f(es.mean))
