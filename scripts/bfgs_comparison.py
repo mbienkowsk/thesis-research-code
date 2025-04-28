@@ -1,4 +1,5 @@
 from multiprocessing import Pool
+import os
 import seaborn as sns
 from loguru import logger
 import matplotlib.pyplot as plt
@@ -51,6 +52,7 @@ def single_comparison(i: int):
 
     def log_bgfs(intermediate_result: OptimizeResult):
         nonlocal bgfs_evals, bgfs_best, elliptic_counter
+        logger.info(f"Thread {i}: {elliptic_counter.nfev} BFGS evals")
 
         if elliptic_counter.nfev > maxevals:
             raise StopBFGS()
@@ -144,5 +146,10 @@ def plot_results():
 
 
 if __name__ == "__main__":
+    # Ensure output dirs are created
+    os.makedirs(RESULT_DIR, exist_ok=True)
+    os.makedirs(RESULT_DIR / "bfgs", exist_ok=True)
+    os.makedirs(RESULT_DIR / "cma", exist_ok=True)
+
     main()
     plot_results()
