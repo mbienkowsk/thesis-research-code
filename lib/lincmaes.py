@@ -5,7 +5,13 @@ from scipy.optimize import bracket, golden
 from enum import Enum
 
 from .funs import OptFun
-from .util import CMAResult, get_function, gradient_central, gradient_forward
+from .util import (
+    CMAResult,
+    StepSizeResult,
+    get_function,
+    gradient_central,
+    gradient_forward,
+)
 
 rng = np.random.default_rng(0)
 
@@ -39,10 +45,14 @@ def lincmaes(
     gradient_type: CMAVariation = CMAVariation.ANALYTICAL_GRAD_C,
     gradient_cost: int = 0,
     seed: int = 0,
-) -> CMAResult:
+    get_step_information: bool = False,
+) -> tuple[CMAResult, StepSizeResult | None]:
     midpoint_values = []
     evals_values = []
     best_values = []
+
+    if get_step_information:
+        golden_step_x, golden_step_sizes, regular_step_sizes = [], [], []
 
     inopts = {}
     if popsize:
@@ -59,6 +69,7 @@ def lincmaes(
         for i in range(switch_interval):
             f = get_function(fun)
             # TODO: figure out why this even happens
+
             try:
                 es.tell(*es.ask_and_eval(f))
             except ValueError:
@@ -67,6 +78,7 @@ def lincmaes(
                         f"{fun.name},{es.countevals},{gradient_type},{switch_interval // len(x)}, {f(es.mean)}\n"
                     )
                     continue
+
             evals_values.append(es.countevals)
             midpoint_values.append(f(es.mean))
             best_values.append(f(es.best.x))
@@ -114,6 +126,16 @@ def lincmaes(
             solution, fval, funccalls = golden(fn, brack=(xa, xb, xc), full_output=True)
             es.countevals += funccalls
 
+            if get_step_information:
+                golden_step_x.append(funccalls)
+                golden_step_sizes.append(np.linalg.norm(solution - es.mean))
+                regular_step_sizes.append(np.linalg.norm(es.sigma * es.pc))
+
+            # Shift the mean
+            solution = es.mean + solution * d
+            es.mean = solution
+            es.pc = np.zeros_like(solution)
+
         except RuntimeError:
             with open("golden_failed.csv", "a") as f:
                 f.write(
@@ -128,12 +150,7 @@ def lincmaes(
                 )
             continue
 
-        # Shift the mean
-        solution = es.mean + solution * d
-        es.mean = solution
-        es.pc = np.zeros_like(solution)
-
-    return CMAResult(
+    result = CMAResult(
         fun=fun,
         dim=len(x),
         k=int(switch_interval / len(x)),
@@ -142,3 +159,13 @@ def lincmaes(
         best_values=np.array(best_values),
         nums_evals=np.array(evals_values),
     )
+
+    ss_result = None
+    if get_step_information:
+        ss_result = StepSizeResult(
+            x=np.array(golden_step_x),
+            golden_step_sizes=np.array(golden_step_sizes),
+            regular_step_sizes=np.array(regular_step_sizes),
+        )
+
+    return result, ss_result

@@ -45,6 +45,13 @@ def plot_angle(grad, pc, angle, mean):
 
 
 @dataclass
+class StepSizeResult:
+    x: np.ndarray
+    golden_step_sizes: np.ndarray
+    regular_step_sizes: np.ndarray
+
+
+@dataclass
 class BaseResult:
     fun: OptFun | CecBenchmark
     dim: int
