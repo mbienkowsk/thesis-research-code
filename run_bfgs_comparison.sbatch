@@ -1,23 +1,35 @@
 #!/bin/bash -l
+
+# Name of the job
 #SBATCH -J bfgs_comparison
-#SBATCH -N 1
+
+# One node, one task, one task per node
 #SBATCH --ntasks=1
+
+# Memory limit
+#SBATCH --mem=1GB
+
+# num of cpus per task, time limit HH:MM:SS
 #SBATCH --cpus-per-task=25
-#SBATCH --mem-per-cpu=2G
-#SBATCH --time=04:00:00
+#SBATCH --time=72:00:00
+# Grant name
 #SBATCH -A plgcmaes
+
+# Partition (plgrid for 72 hours)
 #SBATCH -p plgrid
+
+# Output files
 #SBATCH --output="out.log"
 #SBATCH --error="err.log"
 
 cd $SLURM_SUBMIT_DIR
 
 # Load Python and activate your environment
-module load trytonp/python/3.12.0
+module load ~/modules/3.13.2
 
 echo "Creating venv"
 python3 -m venv .venv
-source .venv/bin/activate  # Or use conda if you prefer
+source .venv/bin/activate  
 
 # Install dependencies
 echo "Installing dependencies"
