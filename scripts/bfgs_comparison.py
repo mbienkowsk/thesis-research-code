@@ -17,8 +17,8 @@ from lib.wrapper import eswrapper
 
 rng = np.random.default_rng(0)
 BOUNDS = 3
-DIM = 3
-RESULT_DIR = Path("csv_results")
+DIM = 10
+RESULT_DIR = Path("results/bfgs_comparison")
 
 
 class StopBFGS(Exception): ...
@@ -47,7 +47,6 @@ def single_comparison(i: int):
     maxevals = 4000 * DIM
 
     bgfs_evals, bgfs_best = np.array([]), np.array([])
-    cma_evals, cma_best = np.array([]), np.array([])
     elliptic_counter = EvalCounter(Elliptic.fun)
 
     def log_bgfs(intermediate_result: OptimizeResult):
@@ -100,7 +99,6 @@ def main():
 
 
 def plot_results():
-    # BFGS results
     bfgs_results = []
     for i in range(1, 52):
         bfgs_results.append(np.loadtxt(RESULT_DIR / "bfgs" / f"{i}.csv", delimiter=","))
@@ -113,7 +111,6 @@ def plot_results():
         bfgs_values, bfgs_evals, maxevals
     )
 
-    # CMA-ES results
     cma_results = []
     for i in range(1, 52):
         cma_results.append(np.loadtxt(RESULT_DIR / "cma" / f"{i}.csv", delimiter=","))
@@ -142,7 +139,7 @@ def plot_results():
     plt.title(f"BFGS vs CMA-ES - f. pokrzywiona w {DIM} wymiarach")
     plt.xlabel("Liczba ewaluacji f. celu")
     plt.ylabel("Najlepsze znalezione rozwiązanie")
-    plt.savefig(RESULT_DIR / "comparison.png")
+    plt.savefig(RESULT_DIR / f"plot_{DIM}.png")
 
 
 if __name__ == "__main__":

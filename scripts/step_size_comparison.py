@@ -14,7 +14,7 @@ from .comparison import average_interpolated_values
 
 DIMS = 10
 FUN = funs.Elliptic
-RESULT_DIR = Path("csv_results/step_size_comparison")
+RESULT_DIR = Path("results/step_size_comparison")
 NUM_RUNS = 50
 MAXEVALS = 4000 * DIMS
 
