@@ -12,14 +12,12 @@ from lib import funs
 from lib.lincmaes import lincmaes, CMAVariation
 from .comparison import average_interpolated_values
 
-# Configuration
-DIMS = 100  # You can adjust this
+DIMS = 10
 FUN = funs.Elliptic
 RESULT_DIR = Path("csv_results/step_size_comparison")
-NUM_RUNS = 50  # Total number of runs to average
-MAXEVALS = 4000 * DIMS  # Maximum number of function evaluations
+NUM_RUNS = 50
+MAXEVALS = 4000 * DIMS
 
-# Initialize RNG with a fixed seed for reproducibility
 rng = np.random.default_rng(0)
 
 
@@ -31,17 +29,13 @@ def single_step_size_comp(idx: int):
     Args:
         idx (int): Index of the run, used for seeding and file naming
     """
-    # Use a prime number as the seed for better randomness distribution
     seed: int = cast(int, prime(idx))
 
-    # Initialize random starting point within bounds
     x = (rng.random(DIMS) - 0.5) * 2 * 5
 
-    # Parameters for lincmaes
     popsize = 4 * DIMS
-    switch_interval = 1 * DIMS  # Set k=1 for the interval
+    switch_interval = 1 * DIMS
 
-    # Run the hybrid CMA-ES with golden search and track step sizes
     _, step_size_result = lincmaes(
         x=x,
         fun=FUN,
@@ -50,18 +44,17 @@ def single_step_size_comp(idx: int):
         maxevals=MAXEVALS,
         gradient_type=CMAVariation.ANALYTICAL_GRAD_C,
         seed=seed,
-        get_step_information=True,  # Enable step size tracking
+        get_step_information=True,
     )
 
     if step_size_result is not None:
-        # Save step size information to CSV
         np.savetxt(
             RESULT_DIR / f"{idx}.csv",
             np.column_stack(
                 (
-                    step_size_result.x,  # Function calls for golden search
-                    step_size_result.golden_step_sizes,  # Step sizes from golden search
-                    step_size_result.regular_step_sizes,  # Regular CMA-ES step sizes
+                    step_size_result.x,
+                    step_size_result.golden_step_sizes,
+                    step_size_result.regular_step_sizes,
                 )
             ),
             delimiter=",",
@@ -80,7 +73,6 @@ def interpolate_and_average_step_sizes():
     Returns:
         tuple: (x, golden_steps, regular_steps) arrays for plotting
     """
-    # Load all results
     all_results = []
     for i in range(1, NUM_RUNS + 1):
         try:
@@ -93,18 +85,14 @@ def interpolate_and_average_step_sizes():
         logger.error("No results found to analyze")
         return None, None, None
 
-    # Extract x values, golden steps, and regular steps
     func_calls = [result[:, 0] for result in all_results if result.shape[0] > 0]
     golden_steps = [result[:, 1] for result in all_results if result.shape[0] > 0]
     regular_steps = [result[:, 2] for result in all_results if result.shape[0] > 0]
 
-    # Find maximum number of function calls across all runs
     max_calls = max(calls[-1] for calls in func_calls if len(calls) > 0)
 
-    # Interpolate and average golden step sizes
     x, avg_golden = average_interpolated_values(golden_steps, func_calls, max_calls)
 
-    # Interpolate and average regular step sizes
     _, avg_regular = average_interpolated_values(regular_steps, func_calls, max_calls)
 
     return x, avg_golden, avg_regular
@@ -121,7 +109,6 @@ def plot_step_sizes(x, golden_steps, regular_steps):
     """
     plt.figure(figsize=(10, 6))
 
-    # Plot both step sizes on the same graph
     plt.yscale("log")
     plt.plot(x, golden_steps, label="Golden Search", color="gold", linewidth=2)
     plt.plot(x, regular_steps, label="Regular CMA-ES", color="blue", linewidth=2)
@@ -132,11 +119,9 @@ def plot_step_sizes(x, golden_steps, regular_steps):
     plt.legend()
     plt.grid(True, alpha=0.3)
 
-    # Create plots directory if it doesn't exist
     plot_dir = Path("plots/step_size_comparison")
     os.makedirs(plot_dir, exist_ok=True)
 
-    # Save the plot
     plt.savefig(plot_dir / f"{FUN.name}_dim{DIMS}.png", dpi=300, bbox_inches="tight")
     plt.close()
 
@@ -145,28 +130,20 @@ def plot_step_sizes(x, golden_steps, regular_steps):
 
 def main():
     """Run the step size comparison across multiple threads"""
-    # Ensure output directory exists
     os.makedirs(RESULT_DIR, exist_ok=True)
 
-    # Run the comparisons in parallel
     with Pool(multiprocessing.cpu_count()) as pool:
         pool.map(single_step_size_comp, range(1, NUM_RUNS + 1))
 
     logger.info("All step size comparisons completed")
 
-    # Interpolate and average the results
     x, golden_steps, regular_steps = interpolate_and_average_step_sizes()
 
-    # Plot the results if data is available
     if x is not None and golden_steps is not None and regular_steps is not None:
         plot_step_sizes(x, golden_steps, regular_steps)
 
 
 if __name__ == "__main__":
-    # Ensure output directory exists
-    os.makedirs(RESULT_DIR, exist_ok=True)
-
-    # Run all comparisons
     main()
 
     logger.info(f"Step size comparison data saved to {RESULT_DIR}")
