@@ -18,10 +18,10 @@ from lib.lincmaes import CMAVariation
 from lib.util import CMAExperimentCallback
 from lib.wrapper import eswrapper
 
-DIMS = 3
+DIMS = 100
 FUN = funs.Elliptic
-RESULT_DIR = Path("results/direction_distance_comparison")
-NUM_RUNS = 3
+RESULT_DIR = Path(f"results/direction_distance_comparison/dim_{DIMS}")
+NUM_RUNS = 25
 MAXEVALS = 4000 * DIMS
 
 rng = np.random.default_rng(0)
