@@ -9,7 +9,7 @@ INIT_BOUNDS = 100
 ALL_FUNS = (Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic)
 
 DEFAULT_CMA_OPTIONS: dict[str, Any] = {
-    "tolfun": 1e-16,
-    "tolfunhist": 1e-16,
+    "tolfun": 1e-9,
+    "tolfunhist": 1e-9,
     "tolflatfitness": 3,
 }
