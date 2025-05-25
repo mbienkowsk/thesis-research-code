@@ -129,7 +129,7 @@ def lincmaes(
             if get_step_information:
                 golden_step_x.append(funccalls)
                 golden_step_sizes.append(np.linalg.norm(solution - es.mean))
-                regular_step_sizes.append(np.linalg.norm(es.sigma * es.pc))
+                regular_step_sizes.append(np.linalg.norm(es.sigma * es.delta))
 
             # Shift the mean
             solution = es.mean + solution * d
