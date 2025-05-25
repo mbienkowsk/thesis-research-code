@@ -1,15 +1,17 @@
-import os
-from pathlib import Path
-from multiprocessing import Pool
 import multiprocessing
+import os
+from multiprocessing import Pool
+from pathlib import Path
 from typing import cast
-import numpy as np
-from sympy import prime
-from loguru import logger
+
 import matplotlib.pyplot as plt
+import numpy as np
+from loguru import logger
+from sympy import prime
 
 from lib import funs
-from lib.lincmaes import lincmaes, CMAVariation
+from lib.lincmaes import CMAVariation, lincmaes
+
 from .comparison import average_interpolated_values
 
 DIMS = 10

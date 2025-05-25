@@ -1,19 +1,21 @@
-from multiprocessing import Pool
-import os
-import seaborn as sns
-from loguru import logger
-import matplotlib.pyplot as plt
 import multiprocessing
+import os
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Callable
-from .comparison import average_interpolated_values
-from lib.funs import Elliptic, OptFun
-import numpy as np
-from sympy import prime
-from scipy.optimize import OptimizeResult, minimize
 
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from loguru import logger
+from scipy.optimize import OptimizeResult, minimize
+from sympy import prime
+
+from lib.funs import Elliptic, OptFun
 from lib.lincmaes import CMAVariation
 from lib.wrapper import eswrapper
+
+from .comparison import average_interpolated_values
 
 rng = np.random.default_rng(0)
 BOUNDS = 3

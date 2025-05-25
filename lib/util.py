@@ -1,16 +1,16 @@
 from __future__ import annotations
+
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
+
+import matplotlib.pyplot as plt
 import numba
 import numpy as np
-from opfunu.cec_based.cec import CecBenchmark
 import seaborn as sns
-import matplotlib.pyplot as plt
+from opfunu.cec_based.cec import CecBenchmark
 
 from .funs import OptFun
-from typing import TYPE_CHECKING
-
 
 if TYPE_CHECKING:
     from lincmaes import CMAVariation

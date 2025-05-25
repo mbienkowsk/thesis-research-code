@@ -1,16 +1,18 @@
-from collections.abc import Iterable
 import multiprocessing
+from collections.abc import Iterable
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 from loguru import logger
 from opfunu.cec_based.cec import CecBenchmark
+
 from lib.cec import get_cec2017_for_dim
 from lib.constants import ALL_FUNS, INIT_BOUNDS, PLOT_PATH
 from lib.funs import OptFun
 from lib.lincmaes import CMAVariation
 from lib.util import CMAResult, InterpolatedCMAResult
 from lib.wrapper import eswrapper
-import numpy as np
-import matplotlib.pyplot as plt
 
 rng = np.random.default_rng(0)
 

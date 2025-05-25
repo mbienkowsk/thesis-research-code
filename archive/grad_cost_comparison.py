@@ -1,13 +1,12 @@
 import multiprocessing
+
+import numpy as np
 from comparison import plot_interpolated_results
 from constants import ALL_FUNS, INIT_BOUNDS, PLOT_PATH
 from funs import OptFun
 from lincmaes import CMAVariation
-import numpy as np
-
 from util import CMAResult, InterpolatedCMAResult
 from wrapper import eswrapper
-
 
 rng = np.random.default_rng(0)
 

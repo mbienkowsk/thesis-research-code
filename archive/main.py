@@ -1,15 +1,15 @@
-import cma
-from loguru import logger
-import numpy as np
-from constants import PLOT_PATH
-from funs import Elliptic, OptFun, ShiftedRastrigin, Sphere
-import matplotlib
-from sklearn.metrics.pairwise import cosine_similarity
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 from pathlib import Path
 
+import cma
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from constants import PLOT_PATH
+from funs import Elliptic, OptFun, ShiftedRastrigin, Sphere
+from loguru import logger
+from sklearn.metrics.pairwise import cosine_similarity
 from util import distance_from_optimum, plot_angle
 
 matplotlib.use("qtagg")

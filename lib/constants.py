@@ -1,8 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from .funs import Rastrigin, ShiftedRastrigin, Sphere, Rosen, Elliptic
-
+from .funs import Elliptic, Rastrigin, Rosen, ShiftedRastrigin, Sphere
 
 PLOT_PATH = Path("plots/")
 INIT_BOUNDS = 100

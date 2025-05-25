@@ -1,4 +1,4 @@
-from opfunu.cec_based import cec2017, CecBenchmark
+from opfunu.cec_based import CecBenchmark, cec2017
 
 
 def get_cec2017_for_dim(idx: int, dim: int) -> CecBenchmark:

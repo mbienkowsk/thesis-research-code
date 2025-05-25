@@ -1,9 +1,9 @@
-from opfunu.cec_based.cec import CecBenchmark
+import numpy as np
 from cma import CMAEvolutionStrategy
+from opfunu.cec_based.cec import CecBenchmark
+
 from .constants import DEFAULT_CMA_OPTIONS
 from .funs import OptFun
-import numpy as np
-
 from .lincmaes import CMAVariation, lincmaes
 from .util import CMAResult, get_function
 

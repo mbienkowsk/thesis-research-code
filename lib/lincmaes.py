@@ -1,17 +1,13 @@
-from opfunu.cec_based.cec import CecBenchmark
-from cma import CMAEvolutionStrategy
-import numpy as np
-from scipy.optimize import bracket, golden
 from enum import Enum
 
+import numpy as np
+from cma import CMAEvolutionStrategy
+from opfunu.cec_based.cec import CecBenchmark
+from scipy.optimize import bracket, golden
+
 from .funs import OptFun
-from .util import (
-    CMAResult,
-    StepSizeResult,
-    get_function,
-    gradient_central,
-    gradient_forward,
-)
+from .util import (CMAResult, StepSizeResult, get_function, gradient_central,
+                   gradient_forward)
 
 rng = np.random.default_rng(0)
 

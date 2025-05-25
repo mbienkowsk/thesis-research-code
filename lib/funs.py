@@ -1,8 +1,9 @@
+from dataclasses import dataclass
 from typing import Callable
+
 import cma
 import numba
 import numpy as np
-from dataclasses import dataclass
 
 
 @dataclass
