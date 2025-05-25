@@ -6,8 +6,8 @@ from opfunu.cec_based.cec import CecBenchmark
 from scipy.optimize import bracket, golden
 
 from .funs import OptFun
-from .util import (CMAResult, StepSizeResult, get_function, gradient_central,
-                   gradient_forward)
+from .util import (CMAExperimentCallback, CMAResult, StepSizeResult,
+                   get_function, gradient_central, gradient_forward)
 
 rng = np.random.default_rng(0)
 
@@ -42,6 +42,7 @@ def lincmaes(
     gradient_cost: int = 0,
     seed: int = 0,
     get_step_information: bool = False,
+    callback: CMAExperimentCallback | None = None,
 ) -> tuple[CMAResult, StepSizeResult | None]:
     midpoint_values = []
     evals_values = []
@@ -68,6 +69,9 @@ def lincmaes(
 
             try:
                 es.tell(*es.ask_and_eval(f))
+                if callback is not None:
+                    callback(es)
+
             except ValueError:
                 with open("lincmaes_failed.csv", "a") as file:
                     file.write(

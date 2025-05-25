@@ -11,7 +11,10 @@ class OptFun:
     fun: Callable
     grad: Callable
     name: str
-    optimum: int  # single input, multiplied by num of dims
+    optimum: int
+
+    def optimum_for_dim(self, dim: int):
+        return np.ones(dim) * self.optimum
 
 
 @numba.njit

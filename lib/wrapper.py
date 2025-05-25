@@ -5,7 +5,7 @@ from opfunu.cec_based.cec import CecBenchmark
 from .constants import DEFAULT_CMA_OPTIONS
 from .funs import OptFun
 from .lincmaes import CMAVariation, lincmaes
-from .util import CMAResult, get_function
+from .util import CMAExperimentCallback, CMAResult, get_function
 
 
 def eswrapper(
@@ -17,6 +17,7 @@ def eswrapper(
     line_search_interval: int | None = None,
     gradient_cost: int = 0,
     seed: int = 0,
+    callback: CMAExperimentCallback | None = None,
 ) -> CMAResult:
     """Wraps all variations of the CMA-ES into a single function with a common interface."""
 
@@ -31,7 +32,7 @@ def eswrapper(
             gradient_type=variation,
             gradient_cost=gradient_cost,
             seed=seed,
-        )
+        )[0]
 
     midpoint_values = []
     evals_values = []
@@ -54,6 +55,9 @@ def eswrapper(
         except ValueError:
             with open("error.csv", "a") as file:
                 file.write(f"{fun.name},{es.countevals},{es.mean},{variation}\n")
+
+        if callback is not None:
+            callback(es)
 
         evals_values.append(es.countevals)
         midpoint_values.append(f(es.mean))

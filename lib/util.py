@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable
@@ -8,6 +9,7 @@ import matplotlib.pyplot as plt
 import numba
 import numpy as np
 import seaborn as sns
+from cma.evolution_strategy import CMAEvolutionStrategy
 from opfunu.cec_based.cec import CecBenchmark
 
 from .funs import OptFun
@@ -180,3 +182,9 @@ def get_function(f: CecBenchmark | OptFun):
         return f.evaluate
     else:
         return f.fun
+
+
+class CMAExperimentCallback(ABC):
+    @abstractmethod
+    def __call__(self, es: CMAEvolutionStrategy):
+        pass
