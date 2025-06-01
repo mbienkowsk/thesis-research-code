@@ -18,13 +18,11 @@ from lib.lincmaes import CMAVariation
 from lib.util import CMAExperimentCallback
 from lib.wrapper import eswrapper
 
-DIMS = 100
+DIMS = 10
 FUN = funs.Elliptic
 RESULT_DIR = Path(f"results/direction_distance_comparison/dim_{DIMS}")
-NUM_RUNS = 25
+NUM_RUNS = 10
 MAXEVALS = 4000 * DIMS
-
-rng = np.random.default_rng(0)
 
 
 def calculate_distance(m: np.ndarray, d: np.ndarray, optimum: np.ndarray):
@@ -64,6 +62,8 @@ class DirectionDistanceCallback(CMAExperimentCallback):
 
 def single_direction_dist_comp(idx: int):
     seed: int = cast(int, prime(idx))
+
+    rng = np.random.default_rng(seed)
 
     x = (rng.random(DIMS) - 0.5) * 2 * 50
     popsize = 4 * DIMS
