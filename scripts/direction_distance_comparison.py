@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import shutil
 from collections import defaultdict
 from dataclasses import dataclass, field
 from multiprocessing import Pool
@@ -43,6 +44,7 @@ class DirectionDistanceCallback(CMAExperimentCallback):
     mean_distances: list[float] = field(default_factory=list)
     pc_c_distances: list[float] = field(default_factory=list)
     grad_c_distances: list[float] = field(default_factory=list)
+    evaluations: list[float] = field(default_factory=list)
 
     @override
     def __call__(self, es):
@@ -58,6 +60,7 @@ class DirectionDistanceCallback(CMAExperimentCallback):
         self.grad_c_distances.append(distance_1)
         self.pc_c_distances.append(distance_2)
         self.mean_distances.append(mean_distance)
+        self.evaluations.append(es.best.f)
 
 
 def single_direction_dist_comp(idx: int):
@@ -87,10 +90,11 @@ def single_direction_dist_comp(idx: int):
                 np.array(callback.mean_distances),
                 np.array(callback.grad_c_distances),
                 np.array(callback.pc_c_distances),
+                np.array(callback.evaluations),
             )
         ),
         delimiter=",",
-        header="func_calls,mean_distances,grad_c_distances,pc_c_distances",
+        header="func_calls,mean_distances,grad_c_distances,pc_c_distances,evaluations",
         comments="",
     )
 
@@ -108,6 +112,7 @@ def aggregate_direction_distance_results(output_fname: str | None) -> pd.DataFra
                 row["mean_distances"],
                 row["grad_c_distances"],
                 row["pc_c_distances"],
+                row["evaluations"],
             ]
             accumulator[key].append(values)  # pyright: ignore[reportArgumentType]
 
@@ -124,6 +129,7 @@ def aggregate_direction_distance_results(output_fname: str | None) -> pd.DataFra
             "mean_distances",
             "grad_c_distances",
             "pc_c_distances",
+            "evaluations",
         ],
     )
 
@@ -147,26 +153,43 @@ def plot_direction_distance_results(
     title: str = "Distance to Optimum Over Time",
     output_fname: str | None = None,
 ):
-    sns.set(style="whitegrid", context="talk")
+    sns.set_theme(style="whitegrid", context="talk")
 
-    plt.figure(figsize=(10, 6))
+    _, axes = plt.subplots(
+        2, 1, figsize=(10, 10), sharex=True, gridspec_kw={"height_ratios": [2, 1]}
+    )
+    top = axes[0]
 
-    # Plot each line
-    plt.plot(
+    top.plot(
         df["func_calls"], df["mean_distances"], label="‖mean − optimum‖", linewidth=2
     )
-    plt.plot(
+    top.plot(
         df["func_calls"], df["grad_c_distances"], label="‖proj(C * grad)‖", linewidth=2
     )
-    plt.plot(
+    top.plot(
         df["func_calls"], df["pc_c_distances"], label="‖proj(C * pc)‖", linewidth=2
     )
+    top.set_yscale("log")
+    top.set_ylabel("Distance to optimum (log scale)")
+    top.set_title(title)
+    top.legend()
+    top.grid(True)
 
-    plt.yscale("log")
-    plt.xlabel("Function evaluations")
-    plt.ylabel("Distance to optimum (log scale)")
-    plt.title(title)
-    plt.legend()
+    bottom = axes[1]
+    bottom.plot(
+        df["func_calls"],
+        df["evaluations"],
+        label="Best-so-far f(x)",
+        color="tab:orange",
+        linewidth=2,
+    )
+    bottom.set_yscale("log")
+    bottom.set_ylabel("Value of the best point")
+    bottom.set_xlabel("Function evaluations")
+    bottom.set_title("Convergence curve")
+    bottom.legend()
+    bottom.grid(True)
+
     plt.tight_layout()
 
     if output_fname:
@@ -177,6 +200,8 @@ def plot_direction_distance_results(
 
 
 def main():
+    if os.path.exists(RESULT_DIR):
+        shutil.rmtree(RESULT_DIR)
     os.makedirs(RESULT_DIR, exist_ok=True)
 
     with Pool(multiprocessing.cpu_count()) as pool:
