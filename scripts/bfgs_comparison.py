@@ -1,8 +1,10 @@
 import multiprocessing
 import os
+import shutil
+from dataclasses import dataclass, field
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Callable
+from typing import Callable, override
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,17 +15,37 @@ from sympy import prime
 
 from lib.funs import Elliptic, OptFun
 from lib.lincmaes import CMAVariation
+from lib.util import CMAExperimentCallback
 from lib.wrapper import eswrapper
 
 from .comparison import average_interpolated_values
 
-rng = np.random.default_rng(0)
 BOUNDS = 3
 DIM = 10
-RESULT_DIR = Path("results/bfgs_comparison")
+RESULT_DIR = Path(f"results/bfgs_comparison/dim_{DIM}")
+NUM_RUNS = 10
 
 
 class StopBFGS(Exception): ...
+
+
+@dataclass
+class BestValueEvalCounterCallback(CMAExperimentCallback):
+    funccalls: list[int] = field(default_factory=list)
+    evaluations: list[float] = field(default_factory=list)
+    best_evaluations: list[float] = field(default_factory=list)
+    best: tuple[np.ndarray, float] | None = field(default=None)
+
+    @override
+    def __call__(self, es):
+        self.funccalls.append(es.countevals)
+        self.evaluations.append(es.best.f)
+
+        if self.best is None or es.best.f < self.best[1]:
+            self.best = (es.mean.copy(), es.best.f)
+            logger.info(f"New best value: {self.best[1]} at {self.best[0]}")
+
+        self.best_evaluations.append(self.best[1])
 
 
 class EvalCounter(OptFun):
@@ -31,20 +53,28 @@ class EvalCounter(OptFun):
 
     fun: Callable
     nfev: int
+    best: tuple[np.ndarray, float] | None
 
     def __init__(self, fun: Callable):
         self.fun = fun
         self.nfev = 0
+        self.best = None
 
     def __call__(self, x):
         self.nfev += 1
-        return self.fun(x)
+        y = self.fun(x)
+
+        if self.best is None or y < self.best[1]:
+            self.best = (x.copy(), y)
+
+        return y
 
 
 def single_comparison(i: int):
     """Run BGFS and CMA-ES with a randomized starting point and save
     their results to file"""
     seed: int = prime(i)  # pyright: ignore[reportAssignmentType]
+    rng = np.random.default_rng(seed)
     x = (rng.random(DIM) - 0.5) * 2 * 5
     maxevals = 4000 * DIM
 
@@ -78,17 +108,24 @@ def single_comparison(i: int):
     logger.info(f"{i}: done with BFGS")
 
     # CMA-ES
-    cma_result = eswrapper(
+    callback = BestValueEvalCounterCallback()
+    _ = eswrapper(
         x=x,
         fun=Elliptic,
         popsize=4 * DIM,
         maxevals=maxevals,
         variation=CMAVariation.VANILLA,
         seed=seed,
+        callback=callback,
     )
     np.savetxt(
         RESULT_DIR / "cma" / f"{i}.csv",
-        np.column_stack((cma_result.nums_evals, cma_result.best_values)),
+        np.column_stack(  # pyright: ignore[reportCallIssue]
+            (
+                callback.funccalls,
+                callback.best_evaluations,
+            )
+        ),
         delimiter=",",
         header="evals, best",
     )
@@ -97,12 +134,12 @@ def single_comparison(i: int):
 
 def main():
     with Pool(multiprocessing.cpu_count()) as pool:
-        pool.map(single_comparison, range(1, 52))
+        pool.map(single_comparison, range(1, NUM_RUNS + 1))
 
 
 def plot_results():
     bfgs_results = []
-    for i in range(1, 52):
+    for i in range(1, NUM_RUNS + 1):
         bfgs_results.append(np.loadtxt(RESULT_DIR / "bfgs" / f"{i}.csv", delimiter=","))
 
     bfgs_evals = [[row[0] for row in br] for br in bfgs_results]
@@ -114,7 +151,7 @@ def plot_results():
     )
 
     cma_results = []
-    for i in range(1, 52):
+    for i in range(1, NUM_RUNS + 1):
         cma_results.append(np.loadtxt(RESULT_DIR / "cma" / f"{i}.csv", delimiter=","))
 
     cma_evals = [[row[0] for row in br] for br in cma_results]
@@ -138,14 +175,18 @@ def plot_results():
         label="CMA-ES",
         ax=fig.gca(),
     )
+    # TODO: log scale for yaxis and standardizing the best point by logging it in the evalcounter
     plt.title(f"BFGS vs CMA-ES - f. pokrzywiona w {DIM} wymiarach")
     plt.xlabel("Liczba ewaluacji f. celu")
     plt.ylabel("Najlepsze znalezione rozwiązanie")
+    plt.yscale("log")
     plt.savefig(RESULT_DIR / f"plot_{DIM}.png")
 
 
 if __name__ == "__main__":
-    # Ensure output dirs are created
+    if os.path.exists(RESULT_DIR):
+        shutil.rmtree(RESULT_DIR)
+
     os.makedirs(RESULT_DIR, exist_ok=True)
     os.makedirs(RESULT_DIR / "bfgs", exist_ok=True)
     os.makedirs(RESULT_DIR / "cma", exist_ok=True)
