@@ -2,11 +2,12 @@ import cma
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from constants import PLOT_PATH
-from funs import OptFun, Sphere
-from lincmaes import one_dim
 from loguru import logger
 from scipy.optimize import golden
+
+from lib.constants import PLOT_PATH
+from lib.funs import OptFun, Sphere
+from lib.lincmaes import one_dim
 
 DIMENSIONS = 100
 BOUNDS = 3

@@ -1,12 +1,15 @@
+"""Checks how the hybrid will perform with different gradient costs compared to the regular CMA-ES."""
+
 import multiprocessing
 
 import numpy as np
-from comparison import plot_interpolated_results
-from constants import ALL_FUNS, INIT_BOUNDS, PLOT_PATH
-from funs import OptFun
-from lincmaes import CMAVariation
-from util import CMAResult, InterpolatedCMAResult
-from wrapper import eswrapper
+
+from experiments.comparison.comparison import plot_interpolated_results
+from lib.constants import ALL_FUNS, INIT_BOUNDS, PLOT_PATH
+from lib.funs import OptFun
+from lib.lincmaes import CMAVariation
+from lib.util import CMAResult, InterpolatedCMAResult
+from lib.wrapper import eswrapper
 
 rng = np.random.default_rng(0)
 

@@ -1,3 +1,5 @@
+"""Measure the cosine similarity between the gradient and pc"""
+
 from pathlib import Path
 
 import cma
@@ -6,11 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from constants import PLOT_PATH
-from funs import Elliptic, OptFun, ShiftedRastrigin, Sphere
 from loguru import logger
 from sklearn.metrics.pairwise import cosine_similarity
-from util import distance_from_optimum, plot_angle
+
+from lib.constants import PLOT_PATH
+from lib.funs import Elliptic, OptFun, ShiftedRastrigin, Sphere
+from lib.util import distance_from_optimum, plot_angle
 
 matplotlib.use("qtagg")
 
