@@ -15,10 +15,8 @@ from sympy import prime
 
 from lib.funs import Elliptic, OptFun
 from lib.lincmaes import CMAVariation
-from lib.util import CMAExperimentCallback
+from lib.util import CMAExperimentCallback, average_interpolated_values
 from lib.wrapper import eswrapper
-
-from .comparison import average_interpolated_values
 
 BOUNDS = 3
 DIM = 10

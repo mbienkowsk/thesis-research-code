@@ -188,3 +188,16 @@ class CMAExperimentCallback(ABC):
     @abstractmethod
     def __call__(self, es: CMAEvolutionStrategy):
         pass
+
+
+def average_interpolated_values(values, evals, maxevals):
+    """Interpolates values to the same length and averages them.
+    Returns both the x values and the y values to later plot."""
+
+    shortest = min(len(v) for v in values)
+
+    x = np.linspace(0, maxevals, shortest)
+
+    return x, np.mean(
+        np.array([np.interp(x, e, v) for v, e in zip(values, evals)]), axis=0
+    )

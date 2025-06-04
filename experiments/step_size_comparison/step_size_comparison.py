@@ -11,8 +11,7 @@ from sympy import prime
 
 from lib import funs
 from lib.lincmaes import CMAVariation, lincmaes
-
-from .comparison import average_interpolated_values
+from lib.util import average_interpolated_values
 
 DIMS = 10
 FUN = funs.Elliptic
