@@ -1,3 +1,5 @@
+"""Compares the convergence of BFGS and CMA-ES on a simple quadratic function"""
+
 import multiprocessing
 import os
 import shutil

@@ -1,3 +1,7 @@
+"""For every iteration, compares the distance of the mean to the optimum, the distance of the
+line achieved by the C * gradient product, and the distance of the line achieved by the C * pc product
+"""
+
 import multiprocessing
 import os
 import shutil

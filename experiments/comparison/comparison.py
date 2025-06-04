@@ -1,3 +1,5 @@
+"""Compares the performance of different CMA-ES hybrid variations on the Elliptic function"""
+
 import multiprocessing
 from collections.abc import Iterable
 from pathlib import Path

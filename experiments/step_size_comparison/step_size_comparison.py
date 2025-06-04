@@ -1,3 +1,5 @@
+"""Compares the step sizes performed by the regular CMA-ES and the golden search version."""
+
 import multiprocessing
 import os
 from multiprocessing import Pool
@@ -23,13 +25,6 @@ rng = np.random.default_rng(0)
 
 
 def single_step_size_comp(idx: int):
-    """
-    Run a single comparison between CMA-ES and the golden search version
-    and save the step size information to CSV.
-
-    Args:
-        idx (int): Index of the run, used for seeding and file naming
-    """
     seed: int = cast(int, prime(idx))
 
     x = (rng.random(DIMS) - 0.5) * 2 * 5
@@ -67,13 +62,6 @@ def single_step_size_comp(idx: int):
 
 
 def interpolate_and_average_step_sizes():
-    """
-    Load all CSV results, interpolate them to the same length,
-    and average the step sizes.
-
-    Returns:
-        tuple: (x, golden_steps, regular_steps) arrays for plotting
-    """
     all_results = []
     for i in range(1, NUM_RUNS + 1):
         try:
@@ -100,15 +88,6 @@ def interpolate_and_average_step_sizes():
 
 
 def plot_step_sizes(x, golden_steps, regular_steps):
-    """
-    Plot the interpolated and averaged step sizes.
-
-    Args:
-        x: Array of function evaluation counts
-        golden_steps: Array of averaged golden search step sizes
-        regular_steps: Array of averaged regular CMA-ES step sizes
-    """
-    plt.figure(figsize=(10, 6))
 
     plt.yscale("log")
     plt.plot(x, golden_steps, label="Golden Search", color="gold", linewidth=2)
