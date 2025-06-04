@@ -175,7 +175,6 @@ def plot_results():
         label="CMA-ES",
         ax=fig.gca(),
     )
-    # TODO: log scale for yaxis and standardizing the best point by logging it in the evalcounter
     plt.title(f"BFGS vs CMA-ES - f. pokrzywiona w {DIM} wymiarach")
     plt.xlabel("Liczba ewaluacji f. celu")
     plt.ylabel("Najlepsze znalezione rozwiązanie")
