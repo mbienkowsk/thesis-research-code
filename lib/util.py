@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Callable, override
 
 import matplotlib.pyplot as plt
 import numba
 import numpy as np
 import seaborn as sns
 from cma.evolution_strategy import CMAEvolutionStrategy
+from loguru import logger
 from opfunu.cec_based.cec import CecBenchmark
 
 from .funs import OptFun
@@ -201,3 +202,44 @@ def average_interpolated_values(values, evals, maxevals):
     return x, np.mean(
         np.array([np.interp(x, e, v) for v, e in zip(values, evals)]), axis=0
     )
+
+
+class EvalCounter(OptFun):
+    """A wrapper to count the number of evaluations"""
+
+    fun: Callable
+    nfev: int
+    best: tuple[np.ndarray, float] | None
+
+    def __init__(self, fun: Callable):
+        self.fun = fun
+        self.nfev = 0
+        self.best = None
+
+    def __call__(self, x):
+        self.nfev += 1
+        y = self.fun(x)
+
+        if self.best is None or y < self.best[1]:
+            self.best = (x.copy(), y)
+
+        return y
+
+
+@dataclass
+class BestValueEvalCounterCallback(CMAExperimentCallback):
+    funccalls: list[int] = field(default_factory=list)
+    evaluations: list[float] = field(default_factory=list)
+    best_evaluations: list[float] = field(default_factory=list)
+    best: tuple[np.ndarray, float] | None = field(default=None)
+
+    @override
+    def __call__(self, es):
+        self.funccalls.append(es.countevals)
+        self.evaluations.append(es.best.f)
+
+        if self.best is None or es.best.f < self.best[1]:
+            self.best = (es.mean.copy(), es.best.f)
+            logger.info(f"New best value: {self.best[1]} at {self.best[0]}")
+
+        self.best_evaluations.append(self.best[1])
