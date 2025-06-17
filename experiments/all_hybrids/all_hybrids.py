@@ -1,3 +1,6 @@
+"""Since es.C approximates the inverse of the hessian matrix, test how plugging it into
+a gradient method such as BFGS compares to the vanilla CMA-ES and vanilla BFGS/L-BFGS"""
+
 from pathlib import Path
 from typing import cast
 
