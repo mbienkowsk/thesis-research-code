@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import glob
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -272,3 +273,20 @@ class BFGSBestValueEvalCounterCallback(CMAExperimentCallback):
         logger.info(
             f"Current best value: {self.best[1]}"  # pyright: ignore[reportOptionalSubscript]
         )
+
+
+def load_results_from_csv(path: str):
+    """Given a csv of x,y pairs, load it and return two arrays"""
+    data = np.loadtxt("path/to/file.csv", delimiter=",", skiprows=1)
+    return data[:, 0], data[:, 1]
+
+
+def load_results_from_directory(dir_path: str):
+    """Given a directory, load all CSVs and return lists of x and y arrays."""
+    xx = []
+    yy = []
+    for csv_file in glob.glob(f"{dir_path}/*.csv"):
+        x, y = load_results_from_csv(csv_file)
+        xx.append(x)
+        yy.append(y)
+    return xx, yy
