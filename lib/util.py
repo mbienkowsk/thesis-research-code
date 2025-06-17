@@ -290,3 +290,10 @@ def load_results_from_directory(dir_path: str):
         xx.append(x)
         yy.append(y)
     return xx, yy
+
+
+def load_and_interpolate_results(dir_path: str):
+    """Given a directory with csv x/y pairs, load all of them and return the interpolated values"""
+    xx, yy = load_results_from_directory(dir_path)
+    xmax = max(x[-1] for x in xx)
+    return average_interpolated_values(yy, xx, xmax)
