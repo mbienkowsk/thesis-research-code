@@ -12,6 +12,7 @@ import seaborn as sns
 from cma.evolution_strategy import CMAEvolutionStrategy
 from loguru import logger
 from opfunu.cec_based.cec import CecBenchmark
+from scipy.optimize import OptimizeResult
 
 from .funs import OptFun
 
@@ -243,3 +244,31 @@ class BestValueEvalCounterCallback(CMAExperimentCallback):
             logger.info(f"New best value: {self.best[1]} at {self.best[0]}")
 
         self.best_evaluations.append(self.best[1])
+
+
+class StopBFGS(Exception): ...
+
+
+@dataclass
+class BFGSBestValueEvalCounterCallback(CMAExperimentCallback):
+    maxevals: int
+    funccalls: list[int] = field(default_factory=list)
+    evaluations: list[float] = field(default_factory=list)
+    best_evaluations: list[float] = field(default_factory=list)
+    best: tuple[np.ndarray, float] | None = field(default=None)
+
+    @override
+    def __call__(self, optres: OptimizeResult, counter: EvalCounter):
+        if counter.nfev > self.maxevals:
+            raise StopBFGS()
+
+        self.funccalls.append(counter.nfev)
+        self.evaluations.append(optres.fun)
+
+        if not self.best or optres.fun < self.best[1]:
+            best = (optres.x, optres.fun)
+
+        self.best_evaluations.append(best[1])
+        logger.info(
+            f"Current best value: {self.best[1]}"  # pyright: ignore[reportOptionalSubscript]
+        )

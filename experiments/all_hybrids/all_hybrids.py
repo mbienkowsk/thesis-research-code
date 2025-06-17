@@ -1,6 +1,160 @@
 from pathlib import Path
+from typing import cast
+
+import numpy as np
+from cma.evolution_strategy import CMAEvolutionStrategy
+from loguru import logger
+from scipy.optimize import bracket, golden, minimize
+
+from lib.funs import Elliptic
+from lib.lincmaes import CMAVariation
+from lib.util import (BestValueEvalCounterCallback,
+                      BFGSBestValueEvalCounterCallback, CMAExperimentCallback,
+                      EvalCounter, gradient_central)
+from lib.wrapper import eswrapper
 
 BOUNDS = 128
 DIM = 10
+MAXEVALS = 4000 * DIM
 RESULT_DIR = Path(f"results/dim_{DIM}")
 NUM_RUNS = 25
+VANILLA_RESULT_DIR = RESULT_DIR / "vanilla"
+BFGS_RESULT_DIR = RESULT_DIR / "bfgs"
+LBFGS_RESULT_DIR = RESULT_DIR / "lbfgs"
+LINESEARCH_RESULT_DIR = RESULT_DIR / "linesearch"
+CMABFGS_RESULT_DIR = RESULT_DIR / "cmabfgs"
+CMALBFGS_RESULT_DIR = RESULT_DIR / "cmabfgs"
+
+
+def run_vanilla(x: np.ndarray, seed: int, idx: int):
+    callback = BestValueEvalCounterCallback()
+    _ = eswrapper(
+        x=x,
+        fun=Elliptic,
+        popsize=4 * DIM,
+        maxevals=MAXEVALS,
+        variation=CMAVariation.VANILLA,
+        seed=seed,
+        callback=callback,
+    )
+    np.savetxt(
+        VANILLA_RESULT_DIR / f"{idx}.csv",
+        np.column_stack(  # pyright: ignore[reportCallIssue]
+            (
+                callback.funccalls,
+                callback.best_evaluations,
+            )
+        ),
+        delimiter=",",
+        header="evals, best",
+    )
+    logger.info(f"{idx}: done with CMA-ES")
+
+
+def run_bfgs(x: np.ndarray, seed: int, idx: int):
+    counter = EvalCounter(Elliptic.fun)
+    callback = BFGSBestValueEvalCounterCallback(MAXEVALS)
+    try:
+        minimize(
+            counter,
+            x.copy(),
+            method="BFGS",
+            callback=lambda optres: callback(optres, counter),
+        )
+
+    finally:
+        np.savetxt(
+            BFGS_RESULT_DIR / f"{idx}.csv",
+            np.column_stack((callback.funccalls, callback.best_evaluations)),
+            delimiter=",",
+            header="evals, best",
+        )
+    logger.info(f"{idx}: done with BFGS")
+
+
+def run_lbfgs(x: np.ndarray, seed: int, idx: int):
+    counter = EvalCounter(Elliptic.fun)
+    callback = BFGSBestValueEvalCounterCallback(MAXEVALS)
+    try:
+        minimize(
+            counter,
+            x.copy(),
+            method="L-BFGS-B",
+            callback=lambda optres: callback(optres, counter),
+        )
+
+    finally:
+        np.savetxt(
+            RESULT_DIR / "bfgs" / f"{idx}.csv",
+            np.column_stack((callback.funccalls, callback.best_evaluations)),
+            delimiter=",",
+            header="evals, best",
+        )
+    logger.info(f"{idx}: done with BFGS")
+
+
+def run_n_cmaes_iterations(
+    x: np.ndarray, seed: int, n: int, callback: CMAExperimentCallback
+):
+    inopts = {"popsize": 4 * len(x), "maxfevals": MAXEVALS, "seed": seed}
+    es = CMAEvolutionStrategy(x, 1, inopts=inopts)
+    while not es.stop():
+        for _ in range(n):
+            es.tell(*es.ask_and_eval(Elliptic))
+            callback(es)
+    return callback, es
+
+
+def run_linesearch(x: np.ndarray, seed: int, idx: int, switch_after: int):
+    callback = BestValueEvalCounterCallback()
+    cma_results, es = run_n_cmaes_iterations(x, seed, switch_after, callback)
+
+    fn = Elliptic.fun
+
+    d = es.C @ gradient_central(fn, es.mean)
+    xa, xb, xc, fa, fb, fc, funccalls = bracket(fn, maxiter=2000)
+    es.countevals += funccalls
+
+    solution, fval, funccalls = golden(fn, brack=(xa, xb, xc), full_output=True)
+    es.countevals += funccalls
+
+    callback.funccalls.append(es.countevals)
+    callback.evaluations.append(fn(solution))
+
+    assert callback.best is not None
+    if (fval := fn(solution)) < callback.best[1]:
+        callback.best = solution, fval
+    callback.best_evaluations.append(callback.best[1])
+    return callback
+
+
+def run_cma_bfgs(x: np.ndarray, seed: int, idx: int, switch_after: int):
+    callback = BestValueEvalCounterCallback()
+    cma_results, es = run_n_cmaes_iterations(x, seed, switch_after, callback)
+    cma_results = cast(BestValueEvalCounterCallback, cma_results)
+
+    counter = EvalCounter(Elliptic.fun)
+    callback = BFGSBestValueEvalCounterCallback(MAXEVALS - es.countevals)
+
+    try:
+        minimize(
+            counter,
+            es.mean,
+            method="BFGS",
+            callback=lambda optres: callback(optres, counter),
+            options={
+                "hess_inv0": es.C,
+            },
+        )
+
+    finally:
+        all_funccalls = np.concatenate([cma_results.funccalls, callback.funccalls])
+        all_best_evaluations = np.concatenate(
+            [cma_results.best_evaluations, callback.best_evaluations]
+        )
+        np.savetxt(
+            CMABFGS_RESULT_DIR / f"{idx}.csv",
+            np.column_stack((all_funccalls, all_best_evaluations)),
+            delimiter=",",
+            header="evals, best",
+        )
