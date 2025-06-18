@@ -3,6 +3,7 @@ a gradient method such as BFGS compares to the vanilla CMA-ES and vanilla BFGS/L
 
 import multiprocessing as mp
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import cast
@@ -20,16 +21,16 @@ from lib.lincmaes import CMAVariation
 from lib.util import (BestValueEvalCounterCallback,
                       BFGSBestValueEvalCounterCallback, CMAExperimentCallback,
                       EvalCounter, gradient_central,
-                      load_and_interpolate_results)
+                      load_and_interpolate_results, one_dim)
 from lib.wrapper import eswrapper
 
 BOUNDS = 100
 DIM = 10
 MAXEVALS = 4000 * DIM
-K_VALUE = 1
+K_VALUE = 50
 SWITCH_AFTER = K_VALUE * DIM
-RESULT_DIR = Path(f"results/dim_{DIM}/K_{K_VALUE}")
-NUM_RUNS = 25
+RESULT_DIR = Path(__file__).parent / f"results/dim_{DIM}/K_{K_VALUE}"
+NUM_RUNS = 10
 VANILLA_RESULT_DIR = RESULT_DIR / "vanilla"
 BFGS_RESULT_DIR = RESULT_DIR / "bfgs"
 LBFGS_RESULT_DIR = RESULT_DIR / "lbfgs"
@@ -66,43 +67,35 @@ def run_vanilla(x: np.ndarray, seed: int, idx: int):
 
 def run_bfgs(x: np.ndarray, seed: int, idx: int):
     counter = EvalCounter(Elliptic.fun)
-    callback = BFGSBestValueEvalCounterCallback(MAXEVALS)
-    try:
-        minimize(
-            counter,
-            x.copy(),
-            method="BFGS",
-            callback=lambda optres: callback(optres, counter),
-        )
+    callback = BFGSBestValueEvalCounterCallback(MAXEVALS, counter)
 
-    finally:
-        np.savetxt(
-            BFGS_RESULT_DIR / f"{idx}.csv",
-            np.column_stack((callback.funccalls, callback.best_evaluations)),
-            delimiter=",",
-            header="evals, best",
-        )
+    minimize(counter, x.copy(), method="BFGS", callback=callback)
+
+    np.savetxt(
+        BFGS_RESULT_DIR / f"{idx}.csv",
+        np.column_stack((callback.funccalls, callback.best_evaluations)),
+        delimiter=",",
+        header="evals, best",
+    )
     logger.info(f"{idx}: done with BFGS")
 
 
 def run_lbfgs(x: np.ndarray, seed: int, idx: int):
     counter = EvalCounter(Elliptic.fun)
-    callback = BFGSBestValueEvalCounterCallback(MAXEVALS)
-    try:
-        minimize(
-            counter,
-            x.copy(),
-            method="L-BFGS-B",
-            callback=lambda optres: callback(optres, counter),
-        )
+    callback = BFGSBestValueEvalCounterCallback(MAXEVALS, counter)
+    minimize(
+        counter,
+        x.copy(),
+        method="L-BFGS-B",
+        callback=callback,
+    )
 
-    finally:
-        np.savetxt(
-            RESULT_DIR / "bfgs" / f"{idx}.csv",
-            np.column_stack((callback.funccalls, callback.best_evaluations)),
-            delimiter=",",
-            header="evals, best",
-        )
+    np.savetxt(
+        LBFGS_RESULT_DIR / f"{idx}.csv",
+        np.column_stack((callback.funccalls, callback.best_evaluations)),
+        delimiter=",",
+        header="evals, best",
+    )
     logger.info(f"{idx}: done with BFGS")
 
 
@@ -113,7 +106,7 @@ def run_n_cmaes_iterations(
     es = CMAEvolutionStrategy(x, 1, inopts=inopts)
     while not es.stop():
         for _ in range(n):
-            es.tell(*es.ask_and_eval(Elliptic))
+            es.tell(*es.ask_and_eval(Elliptic.fun))
             callback(es)
     return callback, es
 
@@ -122,10 +115,14 @@ def run_linesearch(x: np.ndarray, seed: int, idx: int, switch_after: int):
     callback = BestValueEvalCounterCallback()
     cma_results, es = run_n_cmaes_iterations(x, seed, switch_after, callback)
 
-    fn = Elliptic.fun
+    d = es.C @ gradient_central(Elliptic.fun, es.mean)
+    fn = one_dim(Elliptic, es.mean, d)
+    try:
+        xa, xb, xc, fa, fb, fc, funccalls = bracket(fn, maxiter=2000)
+    except Exception as e:
+        logger.error(f"{idx}: Bracket error: {e}")
+        return
 
-    d = es.C @ gradient_central(fn, es.mean)
-    xa, xb, xc, fa, fb, fc, funccalls = bracket(fn, maxiter=2000)
     es.countevals += funccalls
 
     solution, fval, funccalls = golden(fn, brack=(xa, xb, xc), full_output=True)
@@ -138,7 +135,18 @@ def run_linesearch(x: np.ndarray, seed: int, idx: int, switch_after: int):
     if (fval := fn(solution)) < callback.best[1]:
         callback.best = solution, fval
     callback.best_evaluations.append(callback.best[1])
-    return callback
+    np.savetxt(
+        LINESEARCH_RESULT_DIR / f"{idx}.csv",
+        np.column_stack(  # pyright: ignore[reportCallIssue]
+            (
+                callback.funccalls,
+                callback.best_evaluations,
+            )
+        ),
+        delimiter=",",
+        header="evals, best",
+    )
+    logger.info(f"{idx}: done with CMA-ES")
 
 
 def run_cma_bfgs(x: np.ndarray, seed: int, idx: int, switch_after: int):
@@ -147,43 +155,50 @@ def run_cma_bfgs(x: np.ndarray, seed: int, idx: int, switch_after: int):
     cma_results = cast(BestValueEvalCounterCallback, cma_results)
 
     counter = EvalCounter(Elliptic.fun)
-    callback = BFGSBestValueEvalCounterCallback(MAXEVALS - es.countevals)
+    callback = BFGSBestValueEvalCounterCallback(MAXEVALS - es.countevals, counter)
+    h_inv = fix_covariance_matrix(es.C)  # pyright: ignore[reportArgumentType]
 
-    try:
-        minimize(
-            counter,
-            es.mean,
-            method="BFGS",
-            callback=lambda optres: callback(optres, counter),
-            options={
-                "hess_inv0": es.C,
-            },
-        )
+    minimize(
+        counter,
+        es.mean,
+        method="BFGS",
+        callback=callback,
+        options={
+            "hess_inv0": h_inv,
+        },
+    )
 
-    finally:
-        all_funccalls = np.concatenate([cma_results.funccalls, callback.funccalls])
-        all_best_evaluations = np.concatenate(
-            [cma_results.best_evaluations, callback.best_evaluations]
-        )
-        np.savetxt(
-            CMABFGS_RESULT_DIR / f"{idx}.csv",
-            np.column_stack((all_funccalls, all_best_evaluations)),
-            delimiter=",",
-            header="evals, best",
-        )
+    all_funccalls = np.concatenate([cma_results.funccalls, callback.funccalls])
+    all_best_evaluations = np.concatenate(
+        [cma_results.best_evaluations, callback.best_evaluations]
+    )
+    np.savetxt(
+        CMABFGS_RESULT_DIR / f"{idx}.csv",
+        np.column_stack((all_funccalls, all_best_evaluations)),
+        delimiter=",",
+        header="evals, best",
+    )
 
 
-def plot_results(result_path: str):
+def extract_dim_from_path(path: Path):
+    """Extracts the dimension from a path containing 'DIM_<number>'."""
+    match = re.search(r"DIM_(\d+)", str(path).upper())
+    if match:
+        return int(match.group(1))
+    raise ValueError(f"Could not extract dimension from path: {path}")
+
+
+def visualize_results(result_path: Path):
 
     fig = plt.figure()
     postscripts = ["vanilla", "bfgs", "lbfgs", "linesearch", "cmabfgs"]
 
     label_to_dirs = {
-        "vanilla CMA-ES": VANILLA_RESULT_DIR,
-        "vanilla BFGS": BFGS_RESULT_DIR,
-        "vanilla L-BFGS": LBFGS_RESULT_DIR,
-        "CMA-ES + linesearch": LINESEARCH_RESULT_DIR,
-        "CMA-ES + BFGS": CMABFGS_RESULT_DIR,
+        "vanilla CMA-ES": result_path / "vanilla",
+        "vanilla BFGS": result_path / "bfgs",
+        "vanilla L-BFGS": result_path / "lbfgs",
+        "CMA-ES + linesearch": result_path / "linesearch",
+        "CMA-ES + BFGS": result_path / "cmabfgs",
     }
 
     for label, dir in label_to_dirs.items():
@@ -195,11 +210,12 @@ def plot_results(result_path: str):
             ax=fig.gca(),
         )
 
-    plt.title(f"Funkcja pokrzywiona w {DIM} wymiarach")
+    dim = extract_dim_from_path(result_path)
+    plt.title(f"Funkcja pokrzywiona w {dim} wymiarach")
     plt.xlabel("Liczba ewaluacji f. celu")
     plt.ylabel("Najlepsze znalezione rozwiązanie")
     plt.yscale("log")
-    plt.savefig(RESULT_DIR / f"plot.png")
+    plt.savefig(result_path / f"plot.png")
 
 
 def single_run(idx: int):
@@ -219,13 +235,21 @@ def main():
         pool.map(single_run, range(1, NUM_RUNS + 1))
 
 
+def fix_covariance_matrix(C: np.ndarray) -> np.ndarray:
+    """Ensures the covariance matrix is positive definite and symmetrical."""
+    return (C + C.T) / 2
+
+
 if __name__ == "__main__":
     if os.path.exists(RESULT_DIR):
         shutil.rmtree(RESULT_DIR)
 
-    os.makedirs(RESULT_DIR, exist_ok=True)
-    os.makedirs(RESULT_DIR / "bfgs", exist_ok=True)
-    os.makedirs(RESULT_DIR / "cma", exist_ok=True)
+    os.makedirs(RESULT_DIR)
+    os.makedirs(VANILLA_RESULT_DIR)
+    os.makedirs(BFGS_RESULT_DIR)
+    os.makedirs(LBFGS_RESULT_DIR)
+    os.makedirs(LINESEARCH_RESULT_DIR)
+    os.makedirs(CMABFGS_RESULT_DIR)
 
     main()
-    plot_results(str(RESULT_DIR))
+    visualize_results(RESULT_DIR)
