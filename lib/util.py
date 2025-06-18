@@ -247,29 +247,27 @@ class BestValueEvalCounterCallback(CMAExperimentCallback):
         self.best_evaluations.append(self.best[1])
 
 
-class StopBFGS(Exception): ...
-
-
 @dataclass
 class BFGSBestValueEvalCounterCallback(CMAExperimentCallback):
     maxevals: int
+    counter: EvalCounter
     funccalls: list[int] = field(default_factory=list)
     evaluations: list[float] = field(default_factory=list)
     best_evaluations: list[float] = field(default_factory=list)
     best: tuple[np.ndarray, float] | None = field(default=None)
 
     @override
-    def __call__(self, optres: OptimizeResult, counter: EvalCounter):
-        if counter.nfev > self.maxevals:
-            raise StopBFGS()
+    def __call__(self, intermediate_result: OptimizeResult):
+        if self.counter.nfev > self.maxevals:
+            raise StopIteration()
 
-        self.funccalls.append(counter.nfev)
-        self.evaluations.append(optres.fun)
+        self.funccalls.append(self.counter.nfev)
+        self.evaluations.append(intermediate_result.fun)
 
-        if not self.best or optres.fun < self.best[1]:
-            best = (optres.x, optres.fun)
+        if not self.best or intermediate_result.fun < self.best[1]:
+            self.best = (intermediate_result.x, intermediate_result.fun)
 
-        self.best_evaluations.append(best[1])
+        self.best_evaluations.append(self.best[1])
         logger.info(
             f"Current best value: {self.best[1]}"  # pyright: ignore[reportOptionalSubscript]
         )
@@ -277,7 +275,7 @@ class BFGSBestValueEvalCounterCallback(CMAExperimentCallback):
 
 def load_results_from_csv(path: str):
     """Given a csv of x,y pairs, load it and return two arrays"""
-    data = np.loadtxt("path/to/file.csv", delimiter=",", skiprows=1)
+    data = np.loadtxt(path, delimiter=",", skiprows=1)
     return data[:, 0], data[:, 1]
 
 
@@ -297,3 +295,13 @@ def load_and_interpolate_results(dir_path: str):
     xx, yy = load_results_from_directory(dir_path)
     xmax = max(x[-1] for x in xx)
     return average_interpolated_values(yy, xx, xmax)
+
+
+def one_dim(fun: OptFun | CecBenchmark, x, d):
+    """Gimmick to make a multdimensional function 1dim
+    with a set direction d"""
+
+    def wrapper(alpha):
+        return get_function(fun)(x + alpha * d)
+
+    return wrapper

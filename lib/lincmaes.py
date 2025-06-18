@@ -7,19 +7,9 @@ from scipy.optimize import bracket, golden
 
 from .funs import OptFun
 from .util import (CMAExperimentCallback, CMAResult, StepSizeResult,
-                   get_function, gradient_central, gradient_forward)
+                   get_function, gradient_central, gradient_forward, one_dim)
 
 rng = np.random.default_rng(0)
-
-
-def one_dim(fun: OptFun | CecBenchmark, x, d):
-    """Gimmick to make a multdimensional function 1dim
-    with a set direction d"""
-
-    def wrapper(alpha):
-        return get_function(fun)(x + alpha * d)
-
-    return wrapper
 
 
 class CMAVariation(Enum):
