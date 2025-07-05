@@ -5,6 +5,7 @@ import multiprocessing as mp
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 from typing import cast
 
@@ -27,10 +28,10 @@ from lib.wrapper import eswrapper
 BOUNDS = 100
 DIM = 10
 MAXEVALS = 4000 * DIM
-K_VALUE = 50
+K_VALUE = 250
 SWITCH_AFTER = K_VALUE * DIM
 RESULT_DIR = Path(__file__).parent / f"results/dim_{DIM}/K_{K_VALUE}"
-NUM_RUNS = 10
+NUM_RUNS = 5
 VANILLA_RESULT_DIR = RESULT_DIR / "vanilla"
 BFGS_RESULT_DIR = RESULT_DIR / "bfgs"
 LBFGS_RESULT_DIR = RESULT_DIR / "lbfgs"
@@ -164,6 +165,7 @@ def run_cma_bfgs(x: np.ndarray, seed: int, idx: int, switch_after: int):
         method="BFGS",
         callback=callback,
         options={
+            "gtol": 1e-30,
             "hess_inv0": h_inv,
         },
     )
@@ -211,7 +213,7 @@ def visualize_results(result_path: Path):
         )
 
     dim = extract_dim_from_path(result_path)
-    plt.title(f"Funkcja pokrzywiona w {dim} wymiarach")
+    plt.title(f"Funkcja pokrzywiona w {dim} wymiarach, K = {K_VALUE}")
     plt.xlabel("Liczba ewaluacji f. celu")
     plt.ylabel("Najlepsze znalezione rozwiązanie")
     plt.yscale("log")
@@ -241,6 +243,10 @@ def fix_covariance_matrix(C: np.ndarray) -> np.ndarray:
 
 
 if __name__ == "__main__":
+
+    logger.remove()
+    logger.add(sys.stderr, level="ERROR")
+
     if os.path.exists(RESULT_DIR):
         shutil.rmtree(RESULT_DIR)
 
